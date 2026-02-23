@@ -1,0 +1,13 @@
+{
+    "Servers": {
+        "1": {
+            "Name": "Personal Foundry DB",
+            "Group": "Servers",
+            "Host": "postgres",
+            "Port": 5432,
+            "MaintenanceDB": "personal_foundry",
+            "Username": "user",
+            "SSLMode": "prefer"
+        }
+    }
+}
