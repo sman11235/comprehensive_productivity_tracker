@@ -12,6 +12,9 @@ import saket.consumer.domain.EventDTO;
 import saket.consumer.repositories.DevLogRepository;
 import saket.consumer.services.state_dependent_behavior.IDevBehavior;
 
+/**
+ * A class that handles all behaviors related to dev activity
+ */
 @Slf4j
 @Component
 public class DevStrategy implements ITypeStrategy {

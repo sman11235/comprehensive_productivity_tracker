@@ -1,5 +1,8 @@
 package saket.consumer.services;
 
+/**
+ * A class to house all constants of the application.
+ */
 public final class Constants {
     public static final long WINDOW_DURATION_MINS = 60; 
     public static final long MIN_TIME_FOR_VISIT = 30;

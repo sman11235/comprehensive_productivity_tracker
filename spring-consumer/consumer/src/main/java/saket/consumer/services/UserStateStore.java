@@ -9,6 +9,9 @@ import org.springframework.stereotype.Component;
 import saket.consumer.domain.userFSM.UserState;
 import saket.consumer.domain.userFSM.states.DiscreteState;
 
+/**
+ * a class that stores user data
+ */
 @Component
 public class UserStateStore {
     private final AtomicReference<UserState> ref =

@@ -7,6 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import saket.consumer.domain.EventDTO;
 import saket.consumer.services.state_dependent_behavior.LocationBehavior;
 
+/**
+ * Handler that handles all behavior related to location logs.
+ */
 @Slf4j
 @Component
 public class LocationStrategy implements ITypeStrategy {

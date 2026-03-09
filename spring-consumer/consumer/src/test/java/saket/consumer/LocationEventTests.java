@@ -27,6 +27,9 @@ import saket.consumer.services.LocationStrategy;
 import saket.consumer.services.UserStateStore;
 import saket.consumer.services.Constants;
 
+/**
+ * A test that checks the handling of kafka events to locationstrategy.
+ */
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @SpringBootTest
 public class LocationEventTests extends BaseContainerTest {

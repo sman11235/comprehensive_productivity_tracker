@@ -11,6 +11,9 @@ import saket.consumer.exceptions.VisitInjectionError;
 import saket.consumer.domain.actions.IStateActionRepository;
 import saket.consumer.domain.actions.IVisitInjectable;
 
+/**
+ * An impl of IStateActionRunner that handles JPA interactions.
+ */
 @Component
 public class StateActionRunnerJPA implements IStateActionRunner {
 

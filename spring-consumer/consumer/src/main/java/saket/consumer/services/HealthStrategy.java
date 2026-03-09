@@ -12,6 +12,9 @@ import saket.consumer.domain.HealthLog;
 import saket.consumer.repositories.HealthLogRepository;
 import saket.consumer.services.state_dependent_behavior.IHealthBehavior;
 
+/**
+ * A class that handles all behaviors related to health stats.
+ */
 @Slf4j
 @Component
 public class HealthStrategy implements ITypeStrategy {

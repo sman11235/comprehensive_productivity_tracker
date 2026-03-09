@@ -2,8 +2,8 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 
 CREATE TABLE known_places (
     id BIGSERIAL PRIMARY KEY,
-    name TEXT,            -- "Home", "Starbucks North Ave", "Office"
-    category TEXT,         -- "Residential", "Cafe", "Work"
+    name TEXT,           
+    category TEXT,         
     loc GEOGRAPHY(POINT, 4326),   
     created_at TIMESTAMPTZ DEFAULT NOW(),
     status TEXT NOT NULL

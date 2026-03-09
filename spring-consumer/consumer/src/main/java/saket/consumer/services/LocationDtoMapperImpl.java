@@ -7,8 +7,11 @@ import org.springframework.stereotype.Component;
 import saket.consumer.domain.LocationDTO;
 import saket.consumer.domain.LocationLog;
 
+/**
+ * impl of ILocationDtoMapper that manually maps LocationDTO -> LocationLog
+ */
 @Component
-public class LocationDtoMapperimplements implements ILocationDtoMapper {
+public class LocationDtoMapperImpl implements ILocationDtoMapper {
 
     @Override
     public LocationLog toEntity(LocationDTO dto) {

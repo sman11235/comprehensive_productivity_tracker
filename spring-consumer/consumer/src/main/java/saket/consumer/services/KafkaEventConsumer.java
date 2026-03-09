@@ -7,6 +7,9 @@ import org.springframework.kafka.support.KafkaHeaders;
 import saket.consumer.domain.EventDTO;
 import saket.consumer.exceptions.KafkaTopicDoesNotExistError;
 
+/**
+ * A class that handles all kafka consumption and incoming traffic.
+ */
 @Service
 public class KafkaEventConsumer {
     private final TypeStrategyRegistry handlerRegistry;
@@ -15,6 +18,11 @@ public class KafkaEventConsumer {
         handlerRegistry = handlers;
     }
 
+    /**
+     * The function that handles all kafka traffic.
+     * @param event the kafka event received.
+     * @param topic the topic of the kafka event.
+     */
     @KafkaListener(
         topicPattern = "saket\\..*",
         groupId = "consumer-app"

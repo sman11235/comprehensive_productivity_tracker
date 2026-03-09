@@ -27,6 +27,10 @@ import saket.consumer.services.LocationAggregationService;
 import saket.consumer.services.UserStateMachineService;
 import saket.consumer.services.UserStateStore;
 
+/**
+ * A class that handles the aggregation and construction of both locations and visits.
+ * It then sends it to the database for persistence.
+ */
 @Slf4j
 @Component
 public class LocationBehavior implements ILocationBehavior {
