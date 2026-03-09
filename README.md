@@ -9,14 +9,14 @@ Install docker and docker compose
 #### Running
 To run the app, type ```docker compose up --build```
 It may take around 5 minutes for kafka to connect to my application due to its high retry time. 
-Once it connects, requests from kafka will be processed immediately, so no worries.\\
+Once it connects, requests from kafka will be processed immediately, so no worries.\
 
 Once the application has loaded (should be around 20 secs), navigate to http://localhost:8080 and http://localhost:5050.
 These are the Kafka UI and PostgreSQL UI respectively. Open up the kafka UI and navigate to topic. Once there click create topic.
-\\
-In the topic name, type ```saket.location``` set ```time to retain``` to 12 hours and ```max size on disk``` to 1 GB. 
+\
+In the topic name, type ```saket.location```, set ```time to retain``` to 12 hours, and ```max size on disk``` to 1 GB. 
 Leave ```Maximum message size in bytes``` blank.
-Fill everything else with ```1``` and click create topic. \\\\
+Fill everything else with ```1``` and click create topic. \
 
 Next, click produce message and fill out the ```value``` portion with the following JSON, one by one, in order of listing.
 ```
@@ -44,9 +44,8 @@ Next, click produce message and fill out the ```value``` portion with the follow
 ```
 
 This represents a user who stays stationary for a while and walks off, and then comes back. Once you are done with that, navigate to
-http://localhost:5050 in login to the pgAdmin interface with ```user: admin@admin.com, password: admin```. Open the servers tab, and
-type in the password ```pass```. Open the databases tab, and right click on create script. Delete what ever is on the new tab, and 
-paste ```select * from location_logs```. You will check the visit ids and it should read from the top, ```null, 1, 1, 1, 1, null```.
+http://localhost:5050 and login to the pgAdmin interface with ```user: admin@admin.com, password: admin```. Open the servers tab, and
+type in the password ```pass```. Open the databases tab, and right click on ```personal_foundry```, and click create script. Delete what ever is on the new tab, and  paste ```select * from location_logs```. Ceck the visit ids and it should read from the top, ```null, 1, 1, 1, 1, null```.
 This represents the start (with no visit), the visit (the rows with ones), and the end of the visit (the last null).
 
 ## Architecture
