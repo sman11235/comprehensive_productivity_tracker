@@ -30,7 +30,7 @@ public class KnownPlace {
     private String category;
 
     // Maps to GEOMETRY(POINT, 4326)
-    @Column(columnDefinition = "geometry(Point, 4326)")
+    @Column(columnDefinition = "GEOGRAPHY(Point, 4326)")
     private Point loc;
 
     @CreationTimestamp

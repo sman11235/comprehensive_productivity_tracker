@@ -37,12 +37,17 @@ public class LocationAggregationService {
      */
     @Transactional(readOnly = true)
     public UserLocationContext aggregateLocationInfo(Instant currentTime, String deviceId) {
+        //the total large window that contains both current points and old point that will 
+        //not be considered in the calculation.
+        //this is so that we can calculate whether the state machine should be in the start state or not.
         List<LocationLog> window = getWindow(currentTime, Constants.WINDOW_DURATION_MINS);
         if (window.isEmpty()) return UserLocationContext.empty();
         
         Instant cutoff = currentTime.minusSeconds(
             Constants.MIN_TIME_FOR_VISIT * Constants.MINS_TO_SECONDS
         );
+
+        //points for ease of calculation.
         List<Point> points = window.stream()
             .filter(loc -> !loc.getTimestamp().isBefore(cutoff)) //!isBefore for inclusive window (isAfter is exclusive).
             .map(LocationLog::getLoc)
@@ -60,8 +65,18 @@ public class LocationAggregationService {
         KnownPlace closestKnownPlace = getClosestKnownPlaceInRadius(centroid, Constants.KNOWN_PLACE_MATCH_RADIUS_M).orElse(null);
 
         Instant oldestTimestamp = getOldestTimestampInWindow(window);
+        System.out.println("Points: " + points);
+        System.out.println("Window: " + window);
+        System.out.println("Stationary: " + stationary);
 
-        return new UserLocationContext(deviceId, currentTime, centroid, stationary, closestKnownPlace, oldestTimestamp);
+        return new UserLocationContext(
+            deviceId, 
+            currentTime, 
+            centroid, 
+            stationary, 
+            closestKnownPlace, 
+            oldestTimestamp
+        );
     }
 
     /**

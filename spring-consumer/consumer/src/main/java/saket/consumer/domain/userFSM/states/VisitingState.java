@@ -26,7 +26,12 @@ public class VisitingState implements IUserState {
             throw new IllegalStateException("When state is VisitingState, user must be visiting a known_place." +
                                             " Currently, currentVisitID is null (User is not visiting anywhere).");
         }
-        long windowLengthMins = Math.abs(Duration.between(locationContext.timestamp(), locationContext.oldestTimestampInWindow()).toMinutes());
+        long windowLengthMins = Math.abs(
+            Duration.between(
+                locationContext.timestamp(), 
+                locationContext.oldestTimestampInWindow()
+            ).toMinutes()
+        );
         if (windowLengthMins <= Constants.MIN_TIME_FOR_VISIT) {
             return new StateDecision(DiscreteState.START, 
                 List.of(new EndVisit(userContext.getCurrentVisit(), locationContext.timestamp()))

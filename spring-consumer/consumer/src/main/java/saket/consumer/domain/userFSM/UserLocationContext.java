@@ -24,7 +24,14 @@ public record UserLocationContext (
     Instant oldestTimestampInWindow
 ) {
     public static UserLocationContext empty() {
-        return new UserLocationContext(null, null, null, false, null, null);
+        return new UserLocationContext(
+            null, 
+            null, 
+            null, 
+            false, 
+            null, 
+            null
+        );
     }
 
     public static boolean isEmpty(UserLocationContext ctx) {

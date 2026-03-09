@@ -24,7 +24,12 @@ public class StartState implements IUserState {
 
     @Override
     public StateDecision next(UserState userContext, UserLocationContext locationContext) {
-        long windowLengthMins = Math.abs(Duration.between(locationContext.timestamp(), locationContext.oldestTimestampInWindow()).toMinutes());
+        long windowLengthMins = Math.abs(
+            Duration.between(
+                locationContext.timestamp(), 
+                locationContext.oldestTimestampInWindow()
+            ).toMinutes()
+        );
         if (windowLengthMins <= Constants.MIN_TIME_FOR_VISIT) {
             return new StateDecision(DiscreteState.START, 
                 List.of()

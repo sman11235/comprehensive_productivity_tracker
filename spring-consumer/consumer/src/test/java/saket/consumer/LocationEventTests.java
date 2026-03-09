@@ -167,7 +167,6 @@ public class LocationEventTests extends BaseContainerTest {
                 "SELECT COUNT(*) FROM visits WHERE exit_time IS NULL",
                 Integer.class
             );
-        System.out.println(userStateStore.getState());
         assertThat(userStateStore.getState() == DiscreteState.VISITING).isTrue();
         assertThat(openVisits).isNotEqualTo(0);
     }
@@ -214,7 +213,7 @@ public class LocationEventTests extends BaseContainerTest {
         );
         int count = 0;
         for (EventDTO event : events.stream().sorted(Comparator.comparing(EventDTO::observedAt)).toList()) {
-
+            System.out.println(event.observedAt());
             locationStrategy.handle(event);
             count++;
 
@@ -248,6 +247,7 @@ public class LocationEventTests extends BaseContainerTest {
             );
             assertThat(openVisits).isNotNull();
         }
+        System.out.println("Final:" + userStateStore.getState());
         assertThat(userStateStore.getState() == DiscreteState.MOVING).isTrue();
     }
 
