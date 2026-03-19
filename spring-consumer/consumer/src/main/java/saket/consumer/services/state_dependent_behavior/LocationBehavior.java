@@ -69,7 +69,7 @@ public class LocationBehavior implements ILocationBehavior {
 
     @Override
     public void onLocationEvent(EventDTO event) {
-        LocationDTO payload = null;
+        LocationDTO payload;
         try {
             payload = jsonReader.treeToValue(event.payload(), LocationDTO.class);
         } catch (JsonProcessingException e) {
@@ -105,16 +105,16 @@ public class LocationBehavior implements ILocationBehavior {
                 closeCurrentVisit = actionResult.closeCurrentVisit();
         }
 
-        UserState newState = UserState.of(stateDecision.state(), newVisitId);
-
+        Optional<Long> resolvedVisitId = newVisitId;
         if (closeCurrentVisit) {
-            newState.setVisit(null);
-        } else if (newVisitId.isEmpty()) {
-            newState.setVisit(currentState.getCurrentVisit());
+            resolvedVisitId = Optional.empty();
+        } else if (resolvedVisitId.isEmpty() && currentState.getCurrentVisit() != null) {
+            resolvedVisitId = Optional.of(currentState.getCurrentVisit());
         }
 
-        userStateStore.update((old) -> {
-            return newState;
-        });
+        UserState newState = UserState.of(stateDecision.state(), resolvedVisitId);
+
+        UserState finalState = newState;
+        userStateStore.update(old -> finalState);
     }
 }

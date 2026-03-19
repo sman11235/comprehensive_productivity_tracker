@@ -1,11 +1,11 @@
 package saket.consumer.domain.userFSM.states;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
-import saket.consumer.domain.actions.AssignVisitToEvents;
-import saket.consumer.domain.actions.CreateKnownPlaceAndStartVisitAction;
-import saket.consumer.domain.actions.StartVisit;
+import saket.consumer.domain.actions.CreateKnownPlaceStartVisitAndAssignEvents;
+import saket.consumer.domain.actions.StartVisitAndAssignEvents;
 import saket.consumer.domain.userFSM.StateDecision;
 import saket.consumer.domain.userFSM.UserLocationContext;
 import saket.consumer.domain.userFSM.UserState;
@@ -37,16 +37,14 @@ public class MovingState implements IUserState {
         }
 
         if (locationContext.stationary()) {
+            Instant visitStart = locationContext.timestamp()
+                .minusSeconds(Constants.MIN_TIME_FOR_VISIT * Constants.MINS_TO_SECONDS);
             if (locationContext.nearestKnownPlaceInRadius() == null) {
                 return new StateDecision(DiscreteState.VISITING, 
                     List.of(
-                        new CreateKnownPlaceAndStartVisitAction(
+                        new CreateKnownPlaceStartVisitAndAssignEvents(
                             locationContext.centroid(),
-                            locationContext.timestamp().minusSeconds(Constants.MIN_TIME_FOR_VISIT * Constants.MINS_TO_SECONDS)
-                        ),
-                        new AssignVisitToEvents(
-                            null, 
-                            locationContext.timestamp().minusSeconds(Constants.MIN_TIME_FOR_VISIT * Constants.MINS_TO_SECONDS),
+                            visitStart,
                             locationContext.timestamp()
                         )
                     )
@@ -55,13 +53,9 @@ public class MovingState implements IUserState {
             
             return new StateDecision(DiscreteState.VISITING, 
                 List.of(
-                    new StartVisit(
+                    new StartVisitAndAssignEvents(
                         locationContext.nearestKnownPlaceInRadius().getId(), 
-                        locationContext.timestamp().minusSeconds(Constants.MIN_TIME_FOR_VISIT * Constants.MINS_TO_SECONDS)
-                    ),
-                    new AssignVisitToEvents(
-                        null, 
-                        locationContext.timestamp().minusSeconds(Constants.MIN_TIME_FOR_VISIT * Constants.MINS_TO_SECONDS),
+                        visitStart,
                         locationContext.timestamp()
                     )
                 )

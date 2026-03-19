@@ -51,3 +51,11 @@ CREATE TABLE dev_logs (
     metadata JSONB,
     visit_id BIGINT REFERENCES visits(id)
 );
+
+CREATE TABLE processed_events (
+    id BIGSERIAL PRIMARY KEY,
+    event_id TEXT UNIQUE NOT NULL,
+    topic TEXT NOT NULL,
+    observed_at TIMESTAMPTZ,
+    processed_at TIMESTAMPTZ DEFAULT NOW()
+);

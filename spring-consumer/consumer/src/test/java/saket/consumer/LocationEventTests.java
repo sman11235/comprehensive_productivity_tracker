@@ -17,6 +17,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import lombok.extern.slf4j.Slf4j;
 import saket.consumer.domain.EventDTO;
 import saket.consumer.domain.EventOp;
 import saket.consumer.domain.userFSM.UserState;
@@ -30,6 +31,7 @@ import saket.consumer.services.Constants;
 /**
  * A test that checks the handling of kafka events to locationstrategy.
  */
+@Slf4j
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @SpringBootTest
 public class LocationEventTests extends BaseContainerTest {
@@ -139,7 +141,7 @@ public class LocationEventTests extends BaseContainerTest {
             )
         );
         for (EventDTO event : events.stream().sorted(Comparator.comparing(EventDTO::observedAt)).toList()) {
-
+            
             locationStrategy.handle(event);
 
             // ✅ Verify state store updated to something sensible
@@ -293,7 +295,7 @@ public class LocationEventTests extends BaseContainerTest {
         );
         int count = 0;
         for (EventDTO event : events.stream().sorted(Comparator.comparing(EventDTO::observedAt)).toList()) {
-
+            log.info("Processing event with observedAt: {}", event.observedAt());
             locationStrategy.handle(event);
             count++;
 

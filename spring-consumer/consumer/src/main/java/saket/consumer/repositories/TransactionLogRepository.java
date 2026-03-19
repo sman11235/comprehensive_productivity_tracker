@@ -22,6 +22,7 @@ public interface TransactionLogRepository extends JpaRepository<TransactionLog, 
         update TransactionLog d
         set d.visit = :visit
         where d.timestamp between :start and :end
+          and d.visit is null
     """)
     int assignVisit(@Param("visit") Visit visit,
                     @Param("start") Instant start,

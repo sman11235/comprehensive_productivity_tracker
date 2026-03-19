@@ -88,18 +88,8 @@ public class StateChangeTest {
     @Test
     void startToMovingWithVisit() {
         System.out.println("startToMovingWithVisit");
-        boolean isStationary = false;
-        UserState state = new UserState(DiscreteState.START, 15);
-        UserLocationContext context = new UserLocationContext("IPHONE",
-                                                              timestamp,
-                                                              centroid, 
-                                                              isStationary, 
-                                                              place,
-                                                              timestamp.minusSeconds(60 * 60));
-        StateDecision dec = stateChange.nextState(state, context);
-        assertThat(dec.state()).isEqualTo(DiscreteState.MOVING);
-        runner.run(dec.actions(), new TestStateActionImpl());
-        System.out.println("=================");
+        assertThrows(saket.consumer.exceptions.InvalidStateException.class,
+            () -> new UserState(DiscreteState.START, 15));
     }
 
     @Test
@@ -139,15 +129,8 @@ public class StateChangeTest {
     @Test
     void visitingToMovingWithNoVisitID() {
         System.out.println("visitingToMovingWithNoVisitID");
-        boolean isStationary = false;
-        UserState state = new UserState(DiscreteState.VISITING);
-        UserLocationContext context = new UserLocationContext("IPHONE",
-                                                              timestamp,
-                                                              centroid, 
-                                                              isStationary, 
-                                                              null,
-                                                              timestamp.minusSeconds(60 * 60));
-        assertThrows(IllegalStateException.class, () -> stateChange.nextState(state, context));
+        assertThrows(saket.consumer.exceptions.InvalidStateException.class,
+            () -> new UserState(DiscreteState.VISITING));
         System.out.println("=================");
     }
 

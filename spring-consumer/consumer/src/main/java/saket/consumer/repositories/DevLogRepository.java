@@ -21,6 +21,7 @@ public interface DevLogRepository extends JpaRepository<DevLog, Long> {
         update DevLog d
         set d.visit = :visit
         where d.timestamp between :start and :end
+          and d.visit is null
     """)
     int assignVisit(@Param("visit") Visit visit,
                     @Param("start") Instant start,
