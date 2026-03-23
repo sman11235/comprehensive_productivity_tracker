@@ -38,6 +38,7 @@ The agent should assume the following:
   * database: `personal_foundry`
   * username: `user`
   * password: `pass`
+* PostgreSQL is published on host port `5433` by default via `POSTGRES_HOST_PORT` in `.env`.
 * pgAdmin credentials are:
 
   * email: `admin@admin.com`

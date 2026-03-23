@@ -1,0 +1,4 @@
+.env
+python-producers/.state/
+python-producers/__pycache__/
+*.pyc

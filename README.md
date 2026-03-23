@@ -15,6 +15,8 @@ Once it connects, requests from kafka will be processed immediately, so no worri
 Once the application has loaded (should be around 20 secs), navigate to http://localhost:8080 and http://localhost:5050.
 These are the Kafka UI and PostgreSQL UI respectively. Open up the kafka UI and navigate to topic. Once there click create topic.
 
+The Postgres container publishes to host port `5433` by default so it does not conflict with a local Postgres already using `5432`. If you want `5432` instead, set `POSTGRES_HOST_PORT=5432` in `.env` before starting Compose.
+
 In the topic name, type ```saket.location```, set ```time to retain``` to 12 hours, and ```max size on disk``` to 1 GB. 
 Leave ```Maximum message size in bytes``` blank. Fill everything else with ```1``` and click create topic. 
 

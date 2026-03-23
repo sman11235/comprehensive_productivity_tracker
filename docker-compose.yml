@@ -74,7 +74,8 @@ services:
       - KAFKA_CLUSTERS_0_NAME=local
       - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:29092
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     networks:
       - pf-network
 
@@ -97,6 +98,29 @@ services:
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET=earliest
       - SPRING_KAFKA_CONSUMER_GROUP_ID=pf-spring-consumer
+    networks:
+      - pf-network
+
+  python-auth-api:
+    build:
+      context: .
+      dockerfile: python-producers/Dockerfile
+    container_name: pf-python-auth-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - RUN_MODE=api
+      - AUTH_API_HOST=0.0.0.0
+      - AUTH_API_PORT=8000
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./python-producers/.state:/app/python-producers/.state
+    depends_on:
+      kafka:
+        condition: service_healthy
     networks:
       - pf-network
   
