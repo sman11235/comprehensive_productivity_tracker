@@ -1,263 +1,205 @@
-# instructions.md
+# INSTRUCTIONS.md
 
 ## Purpose
 
-This document is written for an AI agent that must start, exercise, and verify the **Comprehensive Productivity Tracker** locally.
+This document is for an AI agent or developer who needs to verify the new Python adapters locally.
 
-The system ingests JSON events from Kafka into a Spring Boot consumer, enriches location events with visit context, and persists results to PostgreSQL/PostGIS.
+The current local test flow is:
 
----
+1. start the Docker Compose stack
+2. open the auth test page at `http://localhost:8000/auth/test`
+3. log in to Plaid
+4. run all pollers
+5. confirm Kafka received the events
+6. confirm PostgreSQL persisted the events
 
-## Goal
+Old instructions for manually publishing six location events are obsolete for this workflow and should be ignored.
 
-Bring the stack up with Docker Compose, create the Kafka topic, publish a fixed sequence of location events, and verify that the resulting `location_logs.visit_id` values are:
+## Expected Services
 
-null, 1, 1, 1, 1, null
+From `docker-compose.yml`, the local stack exposes:
 
-This expected output represents:
+* auth API: `http://localhost:8000`
+* Kafka UI: `http://localhost:8080`
+* pgAdmin: `http://localhost:5050`
+* PostgreSQL: `localhost:5432`
 
-* the start of movement with no active visit,
-* a visit being created and associated with the middle stationary rows,
-* and a final row after leaving the visit.
+Relevant credentials:
 
----
+* Postgres database: `personal_foundry`
+* Postgres username: `user`
+* Postgres password: `pass`
+* pgAdmin email: `admin@admin.com`
+* pgAdmin password: `admin`
 
-## Environment Assumptions
+## Topics and Tables
 
-The agent should assume the following:
+The Python adapters publish to these Kafka topics:
 
-* Docker is installed.
-* Docker Compose is available.
-* The repository root contains a valid `docker-compose.yml`.
-* The Compose stack exposes:
+* `saket.dev_activity`
+* `saket.wallet`
 
-  * Kafka UI at `http://localhost:8080`
-  * pgAdmin at `http://localhost:5050`
-* PostgreSQL credentials are:
+The Spring consumer persists them to these tables:
 
-  * database: `personal_foundry`
-  * username: `user`
-  * password: `pass`
-* PostgreSQL is published on host port `5433` by default via `POSTGRES_HOST_PORT` in `.env`.
-* pgAdmin credentials are:
+* `dev_logs`
+* `transaction_logs`
+* `processed_events`
 
-  * email: `admin@admin.com`
-  * password: `admin`
-* Kafka broker is expected to be reachable internally at `kafka:29092`.
-* The Kafka topic to use is `saket.location`.
+## Prerequisites
 
----
+Before starting the stack:
 
-## High-Level Workflow
+* Docker and Docker Compose must be installed.
+* The repository root `.env` file must contain valid adapter configuration.
+* At minimum, verify:
+  * `GITHUB_USERNAME`
+  * `PLAID_CLIENT_ID`
+  * `PLAID_SECRET`
 
-1. Start the full Docker Compose stack.
-2. Wait for the Spring consumer and Kafka to become ready.
-3. Create the Kafka topic `saket.location`.
-4. Publish the required six JSON messages in the exact order listed below.
-5. Query PostgreSQL.
-6. Confirm that `location_logs.visit_id` matches the expected pattern.
+If the Kafka topics do not already exist, create them in Kafka UI before running the pollers:
 
----
+* `saket.dev_activity`
+* `saket.wallet`
+
+One partition and replication factor `1` are sufficient for local development.
 
 ## Step 1: Start the Stack
 
 From the repository root, run:
 
+```bash
 docker compose up --build
+```
 
-### Readiness Notes
+Wait until these services are reachable:
 
-* The application itself may become generally available in about 20 seconds.
-* Kafka-to-consumer processing may take significantly longer on first startup.
-* A first-message delay of several minutes is acceptable in this environment.
-* After Kafka successfully connects to the Spring consumer, later messages should process immediately.
+* `http://localhost:8000/health`
+* `http://localhost:8080`
+* `http://localhost:5050`
 
-The agent should not assume failure solely because the first Kafka message is delayed.
+The `python-auth-api` container serves the auth page and runs the poller endpoints. The Spring consumer should also be running before verification starts.
 
----
+## Step 2: Open the Auth Test Page
 
-## Step 2: Wait for Services
+Open:
 
-The agent should verify that the following UIs are reachable:
+```text
+http://localhost:8000/auth/test
+```
 
-* Kafka UI: `http://localhost:8080`
-* pgAdmin: `http://localhost:5050`
+This page contains three relevant actions:
 
-The agent should also monitor container logs if possible, especially for the Spring consumer, until it appears capable of consuming Kafka messages.
+* `Connect Plaid`
+* `Seed Plaid Sandbox Item`
+* `Run All Pollers`
 
----
+## Step 3: Log In to Plaid
 
-## Step 3: Create the Kafka Topic
+Preferred path:
 
-Create a topic with the following configuration:
+* click `Connect Plaid`
+* complete Plaid Link
+* wait for the page to report that Plaid is connected
 
-* topic name: `saket.location`
-* time to retain: `12 hours`
-* max size on disk: `1 GB`
-* maximum message size in bytes: leave blank
-* all other numeric fields: `1`
+If interactive Plaid Link is unavailable in the local environment, the sandbox shortcut is acceptable:
 
-If topic creation is performed programmatically instead of via Kafka UI, preserve the same intent:
+* click `Seed Plaid Sandbox Item`
 
-* one partition
-* replication factor one
-* retention equivalent to twelve hours
-* retention bytes equivalent to one gigabyte
+Either path should save Plaid credentials into `python-producers/.state/plaid.json` for later poller runs.
 
----
+## Step 4: Run All Pollers
 
-## Step 4: Publish the Test Event Sequence
+From the same auth test page:
 
-Publish the following six messages to `saket.location` one by one, in the exact order shown.
+* click `Run All Pollers`
 
-### Message 1
+This calls `POST /pollers/run-all`, which runs:
 
-{ "eventId": "evt-003", "deviceId": "iphone-15", "source": "ios-location", "type": "LOCATION_RECORDED", "op": "CREATE", "observedAt": "2026-03-09T15:20:00Z", "payload": { "timestamp": "2026-03-09T15:10:00Z", "deviceId": "iphone-15", "loc": { "type": "Point", "coord": [-84.3902, 33.7501] } }, "attributes": { "provider": "apple-core-location" } }
+* the GitHub dev activity poller
+* the Plaid transactions poller
 
-### Message 2
+Successful output should show a result entry per poller and a `published_count` for each one.
 
-{ "eventId": "evt-003", "deviceId": "iphone-15", "source": "ios-location", "type": "LOCATION_RECORDED", "op": "CREATE", "observedAt": "2026-03-09T15:20:00Z", "payload": { "timestamp": "2026-03-09T15:20:00Z", "deviceId": "iphone-15", "loc": { "type": "Point", "coord": [-84.3902, 33.7501] } }, "attributes": { "provider": "apple-core-location" } }
+## Step 5: Verify Kafka
 
-### Message 3
+Open Kafka UI:
 
-{ "eventId": "evt-003", "deviceId": "iphone-15", "source": "ios-location", "type": "LOCATION_RECORDED", "op": "CREATE", "observedAt": "2026-03-09T15:20:00Z", "payload": { "timestamp": "2026-03-09T15:30:00Z", "deviceId": "iphone-15", "loc": { "type": "Point", "coord": [-84.3902, 33.7501] } }, "attributes": { "provider": "apple-core-location" } }
+```text
+http://localhost:8080
+```
 
-### Message 4
+Check the topics:
 
-{ "eventId": "evt-003", "deviceId": "iphone-15", "source": "ios-location", "type": "LOCATION_RECORDED", "op": "CREATE", "observedAt": "2026-03-09T15:20:00Z", "payload": { "timestamp": "2026-03-09T15:41:00Z", "deviceId": "iphone-15", "loc": { "type": "Point", "coord": [-84.3902, 33.7501] } }, "attributes": { "provider": "apple-core-location" } }
-
-### Message 5
-
-{ "eventId": "evt-003", "deviceId": "iphone-15", "source": "ios-location", "type": "LOCATION_RECORDED", "op": "CREATE", "observedAt": "2026-03-09T15:20:00Z", "payload": { "timestamp": "2026-03-09T15:50:00Z", "deviceId": "iphone-15", "loc": { "type": "Point", "coord": [-84.3902, 43.7501] } }, "attributes": { "provider": "apple-core-location" } }
-
-### Message 6
-
-{ "eventId": "evt-003", "deviceId": "iphone-15", "source": "ios-location", "type": "LOCATION_RECORDED", "op": "CREATE", "observedAt": "2026-03-09T15:20:00Z", "payload": { "timestamp": "2026-03-09T16:00:00Z", "deviceId": "iphone-15", "loc": { "type": "Point", "coord": [-84.3902, 33.7501] } }, "attributes": { "provider": "apple-core-location" } }
-
-### Semantic Meaning of the Sequence
-
-This sequence represents a user who:
-
-* remains stationary for a period of time,
-* leaves that stationary context,
-* then returns.
-
-The backend should interpret the middle rows as belonging to one visit.
-
----
-
-## Step 5: Verify in PostgreSQL
-
-After all six messages have been processed, query the database.
-
-If using pgAdmin:
-
-1. Open `http://localhost:5050`.
-2. Log in with:
-
-   * email: `admin@admin.com`
-   * password: `admin`
-3. Open the registered server.
-4. When prompted for the server password, enter:
-
-pass
-
-5. Open the `personal_foundry` database.
-6. Open a query/script tab.
-7. Run:
-
-select * from location_logs;
-
-If using `psql` instead of pgAdmin, any equivalent query method is acceptable.
-
----
-
-## Step 6: Expected Result
-
-Inspect the `visit_id` column in insertion order from top to bottom.
-
-The expected pattern is:
-
-null, 1, 1, 1, 1, null
-
-### Interpretation
-
-* first row: no visit yet
-* middle four rows: attached to visit `1`
-* last row: no active visit after departure
-
-If the agent sees this exact pattern, the run is successful.
-
----
-
-## Failure Handling Notes
-
-### If Kafka messages do not process immediately
-
-The first Kafka delivery may be delayed for several minutes on startup. This is expected in this environment and should not immediately be treated as failure.
-
-### If later messages are also delayed
-
-The agent should inspect:
-
-* Docker container logs
-* Kafka topic existence
-* whether the Spring consumer is connected to Kafka
-* whether the consumer group is actively reading from `saket.location`
-
-### If the database shape does not match expectations
-
-The agent should verify:
-
-* all six messages were published
-* the messages were published in the correct order
-* the coordinates and timestamps were not altered
-* the topic name was exactly `saket.location`
-
----
-
-## System Architecture Summary
-
-### Ingestion
-
-Producers publish JSON events into Kafka topics such as:
-
-* `saket.location`
 * `saket.dev_activity`
-* `saket.health`
+* `saket.wallet`
 
-A Spring Boot consumer subscribes and routes events by type using strategy beans such as `ITypeStrategy`.
+Confirm that new messages exist after the pollers run.
 
-### Enrichment
+At a minimum:
 
-Location events are aggregated into a sliding window to determine whether the user is stationary or moving.
+* GitHub events should appear in `saket.dev_activity`
+* Plaid transaction events should appear in `saket.wallet`
 
-A user state machine tracks:
+If no new messages appear, inspect the auth page response for poller errors before moving on.
 
-START → MOVING → VISITING
+## Step 6: Verify PostgreSQL Persistence
 
-When the user is in `VISITING`, non-location events such as development activity, health data, and transactions may be linked to the active `Visit`.
+Open pgAdmin:
 
-### Storage
+```text
+http://localhost:5050
+```
 
-The persistence layer is PostgreSQL with PostGIS.
+Log in with:
 
-Important tables include:
+* email: `admin@admin.com`
+* password: `admin`
 
-* `location_logs`
-* `known_places`
-* `visits`
-* `dev_logs`
-* `health_logs`
-* `transaction_logs`
+Open the configured server. If prompted for the server password, enter:
 
----
+```text
+pass
+```
 
-## Completion Condition
+Open the `personal_foundry` database and run these queries:
 
-The task is complete only when:
+```sql
+select * from dev_logs order by id desc;
+select * from transaction_logs order by id desc;
+select * from processed_events order by id desc;
+```
 
-1. the stack has started,
-2. the topic exists,
-3. all six events have been published in order,
-4. `select * from location_logs;` shows the expected visit association pattern.
+Verification criteria:
+
+* rows from GitHub events are present in `dev_logs`
+* rows from Plaid events are present in `transaction_logs`
+* consumed Kafka event ids are present in `processed_events`
+
+## Success Condition
+
+The local verification is successful when all of the following are true:
+
+* Plaid authentication completed successfully
+* `Run All Pollers` completed without errors
+* Kafka UI shows new messages in `saket.dev_activity` and `saket.wallet`
+* pgAdmin shows newly persisted rows in `dev_logs`, `transaction_logs`, and `processed_events`
+
+## Failure Handling
+
+If Plaid login fails:
+
+* verify `PLAID_CLIENT_ID` and `PLAID_SECRET` in `.env`
+* use `Seed Plaid Sandbox Item` as a local fallback
+
+If the pollers fail:
+
+* inspect the JSON response shown on `http://localhost:8000/auth/test`
+* verify `GITHUB_USERNAME` is set
+* verify the Kafka topics exist
+* verify the auth API is using the correct Kafka bootstrap server for Compose: `kafka:29092`
+
+If Kafka receives messages but PostgreSQL does not:
+
+* inspect the `spring-consumer` container logs
+* verify the Spring consumer is connected to Kafka
+* verify the database schema exists and the consumer is healthy
