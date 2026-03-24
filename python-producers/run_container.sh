@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-RUN_MODE="${RUN_MODE:-loop}"
+RUN_MODE="${RUN_MODE:-api}"
 PRODUCER_SCRIPT="${PRODUCER_SCRIPT:-github_dev_producer.py}"
 API_SCRIPT="${API_SCRIPT:-auth_api.py}"
 POLL_INTERVAL_SECONDS="${POLL_INTERVAL_SECONDS:-900}"

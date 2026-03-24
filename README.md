@@ -14,6 +14,8 @@ Before starting the stack, make sure the repository root `.env` contains the ada
 * `PLAID_CLIENT_ID`
 * `PLAID_SECRET`
 
+You can get them from the .env.example if you dont want to create them yourself.
+
 ### Start The Stack
 
 Run from the repository root:
