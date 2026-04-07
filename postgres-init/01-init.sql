@@ -20,6 +20,7 @@ CREATE TABLE location_logs (
     id BIGSERIAL PRIMARY KEY,
     timestamp TIMESTAMPTZ NOT NULL,
     device_id TEXT NOT NULL,
+    location_name TEXT,
     loc GEOGRAPHY(POINT, 4326),
     visit_id BIGINT REFERENCES visits(id)
 );

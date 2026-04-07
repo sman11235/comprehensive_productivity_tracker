@@ -27,6 +27,9 @@ public class LocationLog {
     @Column(name = "device_id", nullable = false)
     private String deviceId;
 
+    @Column(name = "location_name")
+    private String locationName;
+
     @Column(columnDefinition = "GEOGRAPHY(Point, 4326)")
     private Point loc;
 
@@ -34,11 +37,16 @@ public class LocationLog {
     @JoinColumn(name = "visit_id")
     private Visit visit;
 
+    public LocationLog(Long id, Instant timestamp, String deviceId, Point loc, Visit visit) {
+        this(id, timestamp, deviceId, null, loc, visit);
+    }
+
     @Override
     public String toString() {
         return "{id: " + id
             + "; timestamp: " + timestamp 
             + "; deviceId: " + deviceId 
+            + "; locationName: " + locationName
             + "; loc: " + loc 
             + "; visit: " + (visit == null ? "null" : visit.getId()) 
             + " }";

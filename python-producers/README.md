@@ -71,6 +71,34 @@ Available endpoints:
 * `POST /auth/plaid/exchange-public-token`
 * `POST /auth/plaid/sandbox-seed`
 
+## Location API
+
+Run the separate location API locally:
+
+```bash
+source .venv/bin/activate
+set -a
+source .env
+set +a
+python python-producers/location_api.py
+```
+
+Default local address:
+
+```text
+http://localhost:8001
+```
+
+Available endpoints:
+
+* `GET /health`
+* `POST /locations`
+* `GET /visits`
+
+`POST /locations` accepts frontend location payloads and publishes `saket.location` events for the Spring consumer.
+
+`GET /visits` reads `visits` plus the linked `location_logs`, `transaction_logs`, `health_logs`, and `dev_logs` directly from Postgres.
+
 For manual testing before the real frontend exists, open:
 
 ```text

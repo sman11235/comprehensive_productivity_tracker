@@ -27,6 +27,7 @@ docker compose up --build
 This starts:
 
 * auth API on `http://localhost:8000`
+* location API on `http://localhost:8001`
 * Kafka UI on `http://localhost:8080`
 * pgAdmin on `http://localhost:5050`
 * PostgreSQL on `localhost:5432`
@@ -107,6 +108,8 @@ You should see:
 ### Ingestion
 
 Python adapters publish JSON events into Kafka topics such as `saket.dev_activity` and `saket.wallet`.
+
+The separate location API accepts frontend location posts, publishes `saket.location` events to Kafka, and reads visit history directly from Postgres.
 
 The Spring Boot consumer subscribes to Kafka and routes incoming events by topic and type using strategy classes.
 

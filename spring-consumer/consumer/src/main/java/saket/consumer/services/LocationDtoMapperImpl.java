@@ -28,8 +28,8 @@ public class LocationDtoMapperImpl implements ILocationDtoMapper {
         return LocationLog.builder()
             .deviceId(dto.deviceId())
             .timestamp(dto.timestamp())
+            .locationName(dto.locationName())
             .loc(coord)
             .build();
     }
 }
-

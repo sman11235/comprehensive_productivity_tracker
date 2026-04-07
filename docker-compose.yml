@@ -123,6 +123,35 @@ services:
         condition: service_healthy
     networks:
       - pf-network
+
+  python-location-api:
+    build:
+      context: .
+      dockerfile: python-producers/Dockerfile
+    container_name: pf-python-location-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - RUN_MODE=api
+      - API_SCRIPT=location_api.py
+      - LOCATION_API_HOST=0.0.0.0
+      - LOCATION_API_PORT=8001
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=personal_foundry
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - pf-network
   
 networks:
   pf-network:

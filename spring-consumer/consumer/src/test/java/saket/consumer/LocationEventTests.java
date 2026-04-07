@@ -69,15 +69,16 @@ public class LocationEventTests extends BaseContainerTest {
         userStateStore.update(old -> UserState.initial());
     }
 
-    private JsonNode createLocationPayload(Instant timestamp, double lon, double lat) {
+    private JsonNode createLocationPayload(Instant timestamp, String locationName, double lon, double lat) {
         try {
             String json = """
                 {
                   "timestamp": "%s",
                   "deviceId": "iphone",
+                  "locationName": "%s",
                   "loc": { "type": "Point", "coord": [%s, %s] }
                 }
-                """.formatted(timestamp.toString(), lon, lat);
+                """.formatted(timestamp.toString(), locationName, lon, lat);
 
             return om.readTree(json);
         } catch (Exception e) {
@@ -91,52 +92,52 @@ public class LocationEventTests extends BaseContainerTest {
         List<EventDTO> events = List.of(
             new EventDTO("9", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now.minusSeconds(86 * SECONDS_IN_MIN),
-                createLocationPayload(now.minusSeconds(80 * SECONDS_IN_MIN), -84.39, 33.78),
+                createLocationPayload(now.minusSeconds(80 * SECONDS_IN_MIN), "Tech Square", -84.39, 33.78),
                 null
             ),
             new EventDTO("8", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now.minusSeconds(76 * SECONDS_IN_MIN),
-                createLocationPayload(now.minusSeconds(70 * SECONDS_IN_MIN), -84.39, 33.78),
+                createLocationPayload(now.minusSeconds(70 * SECONDS_IN_MIN), "Tech Square", -84.39, 33.78),
                 null
             ),
             new EventDTO("7", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now.minusSeconds(66 * SECONDS_IN_MIN),
-                createLocationPayload(now.minusSeconds(60 * SECONDS_IN_MIN), -84.39, 33.78),
+                createLocationPayload(now.minusSeconds(60 * SECONDS_IN_MIN), "Tech Square", -84.39, 33.78),
                 null
             ),
             new EventDTO("6", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now.minusSeconds(50 * SECONDS_IN_MIN),
-                createLocationPayload(now.minusSeconds(50 * SECONDS_IN_MIN), -84.39, 33.78),
+                createLocationPayload(now.minusSeconds(50 * SECONDS_IN_MIN), "Tech Square", -84.39, 33.78),
                 null
             ),
             new EventDTO("5", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now.minusSeconds(40 * SECONDS_IN_MIN),
-                createLocationPayload(now.minusSeconds(40 * SECONDS_IN_MIN), -84.39, 33.78),
+                createLocationPayload(now.minusSeconds(40 * SECONDS_IN_MIN), "Tech Square", -84.39, 33.78),
                 null
             ),
             new EventDTO("4", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now.minusSeconds(30 * SECONDS_IN_MIN),
-                createLocationPayload(now.minusSeconds(30 * SECONDS_IN_MIN), -84.39, 33.78),
+                createLocationPayload(now.minusSeconds(30 * SECONDS_IN_MIN), "Tech Square", -84.39, 33.78),
                 null
             ),
             new EventDTO("3", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now.minusSeconds(20 * SECONDS_IN_MIN),
-                createLocationPayload(now.minusSeconds(20 * SECONDS_IN_MIN), -84.39, 33.78),
+                createLocationPayload(now.minusSeconds(20 * SECONDS_IN_MIN), "Tech Square", -84.39, 33.78),
                 null
             ),
             new EventDTO("2", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now.minusSeconds(10 * SECONDS_IN_MIN),
-                createLocationPayload(now.minusSeconds(10 * SECONDS_IN_MIN), -84.39, 33.78),
+                createLocationPayload(now.minusSeconds(10 * SECONDS_IN_MIN), "Tech Square", -84.39, 33.78),
                 null
             ),
             new EventDTO("1", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now,
-                createLocationPayload(now, -84.39, 33.78),
+                createLocationPayload(now, "Tech Square", -84.39, 33.78),
                 null
             ),
             new EventDTO("10", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now.plusSeconds(2 * SECONDS_IN_MIN),
-                createLocationPayload(now.plusSeconds(2 * SECONDS_IN_MIN), -84.39, 33.78),
+                createLocationPayload(now.plusSeconds(2 * SECONDS_IN_MIN), "Tech Square", -84.39, 33.78),
                 null
             )
         );
@@ -171,6 +172,8 @@ public class LocationEventTests extends BaseContainerTest {
             );
         assertThat(userStateStore.getState() == DiscreteState.VISITING).isTrue();
         assertThat(openVisits).isNotEqualTo(0);
+        assertThat(locationLogRepository.findAll())
+            .allSatisfy(loggedLocation -> assertThat(loggedLocation.getLocationName()).isEqualTo("Tech Square"));
     }
 
     @Test
@@ -179,37 +182,37 @@ public class LocationEventTests extends BaseContainerTest {
         List<EventDTO> events = List.of(
             new EventDTO("6", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now.minusSeconds(60 * SECONDS_IN_MIN),
-                createLocationPayload(now.minusSeconds(50 * SECONDS_IN_MIN), -84.39, 33.78),
+                createLocationPayload(now.minusSeconds(50 * SECONDS_IN_MIN), "Tech Square", -84.39, 33.78),
                 null
             ),
             new EventDTO("5", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now.minusSeconds(40 * SECONDS_IN_MIN),
-                createLocationPayload(now.minusSeconds(40 * SECONDS_IN_MIN), -84.39, 33.78),
+                createLocationPayload(now.minusSeconds(40 * SECONDS_IN_MIN), "Tech Square", -84.39, 33.78),
                 null
             ),
             new EventDTO("4", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now.minusSeconds(30 * SECONDS_IN_MIN),
-                createLocationPayload(now.minusSeconds(30 * SECONDS_IN_MIN), -84.39, 33.78),
+                createLocationPayload(now.minusSeconds(30 * SECONDS_IN_MIN), "Tech Square", -84.39, 33.78),
                 null
             ),
             new EventDTO("3", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now.minusSeconds(20 * SECONDS_IN_MIN),
-                createLocationPayload(now.minusSeconds(20 * SECONDS_IN_MIN), -84.39, 33.78),
+                createLocationPayload(now.minusSeconds(20 * SECONDS_IN_MIN), "Tech Square", -84.39, 33.78),
                 null
             ),
             new EventDTO("2", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now.minusSeconds(10 * SECONDS_IN_MIN),
-                createLocationPayload(now.minusSeconds(10 * SECONDS_IN_MIN), -84.39, 33.78),
+                createLocationPayload(now.minusSeconds(10 * SECONDS_IN_MIN), "Tech Square", -84.39, 33.78),
                 null
             ),
             new EventDTO("1", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now,
-                createLocationPayload(now, -84.39, 33.78),
+                createLocationPayload(now, "Tech Square", -84.39, 33.78),
                 null
             ),
             new EventDTO("7", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now.minusSeconds(Constants.MIN_TIME_FOR_VISIT * SECONDS_IN_MIN - 60),
-                createLocationPayload(now.minusSeconds(Constants.MIN_TIME_FOR_VISIT * SECONDS_IN_MIN - 60), -85.39, 33.78),
+                createLocationPayload(now.minusSeconds(Constants.MIN_TIME_FOR_VISIT * SECONDS_IN_MIN - 60), "Far Away", -85.39, 33.78),
                 null
             )
         );
@@ -259,37 +262,37 @@ public class LocationEventTests extends BaseContainerTest {
         List<EventDTO> events = List.of(
             new EventDTO("6", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now.minusSeconds(60 * SECONDS_IN_MIN),
-                createLocationPayload(now.minusSeconds(50 * SECONDS_IN_MIN), -84.39, 33.78),
+                createLocationPayload(now.minusSeconds(50 * SECONDS_IN_MIN), "Tech Square", -84.39, 33.78),
                 null
             ),
             new EventDTO("5", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now.minusSeconds(40 * SECONDS_IN_MIN),
-                createLocationPayload(now.minusSeconds(40 * SECONDS_IN_MIN), -84.39, 33.78),
+                createLocationPayload(now.minusSeconds(40 * SECONDS_IN_MIN), "Tech Square", -84.39, 33.78),
                 null
             ),
             new EventDTO("4", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now.minusSeconds(30 * SECONDS_IN_MIN),
-                createLocationPayload(now.minusSeconds(30 * SECONDS_IN_MIN), -84.39, 33.78),
+                createLocationPayload(now.minusSeconds(30 * SECONDS_IN_MIN), "Tech Square", -84.39, 33.78),
                 null
             ),
             new EventDTO("3", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now.minusSeconds(20 * SECONDS_IN_MIN),
-                createLocationPayload(now.minusSeconds(20 * SECONDS_IN_MIN), -84.39, 33.78),
+                createLocationPayload(now.minusSeconds(20 * SECONDS_IN_MIN), "Tech Square", -84.39, 33.78),
                 null
             ),
             new EventDTO("2", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now.minusSeconds(10 * SECONDS_IN_MIN),
-                createLocationPayload(now.minusSeconds(10 * SECONDS_IN_MIN), -84.39, 33.78),
+                createLocationPayload(now.minusSeconds(10 * SECONDS_IN_MIN), "Tech Square", -84.39, 33.78),
                 null
             ),
             new EventDTO("1", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now,
-                createLocationPayload(now, -84.39, 33.78),
+                createLocationPayload(now, "Tech Square", -84.39, 33.78),
                 null
             ),
             new EventDTO("7", "iphone", "ios", "saket.location", EventOp.CREATE,
                 now.minusSeconds(Constants.MINS_TO_SECONDS * SECONDS_IN_MIN + 60),
-                createLocationPayload(now.minusSeconds(Constants.MINS_TO_SECONDS * SECONDS_IN_MIN + 60), -85.39, 33.78),
+                createLocationPayload(now.minusSeconds(Constants.MINS_TO_SECONDS * SECONDS_IN_MIN + 60), "Out Of Bounds", -85.39, 33.78),
                 null
             )
         );
