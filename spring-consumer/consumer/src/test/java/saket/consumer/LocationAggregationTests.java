@@ -355,4 +355,23 @@ class LocationAggregationTests extends BaseContainerTest {
         assertThat(UserLocationContext.isEmpty(ctx)).isFalse();
         assertThat(ctx.nearestKnownPlaceInRadius()).isNull();
     }
+
+    @Test
+    void aggregateLocationInfo_usesNewestNonBlankLocationName() {
+        Instant now = Instant.now().truncatedTo(ChronoUnit.MILLIS);
+
+        Point point = PointUtil.wgs84FromLatLon(TECH_SQUARE_LAT, TECH_SQUARE_LON);
+
+        locationLogRepository.saveAll(List.of(
+            new LocationLog(null, now.minusSeconds(30), DEVICE_ID, "Tech Square", point, null),
+            new LocationLog(null, now.minusSeconds(20), DEVICE_ID, "   ", point, null),
+            new LocationLog(null, now.minusSeconds(10), DEVICE_ID, "Coda", point, null)
+        ));
+        locationLogRepository.flush();
+
+        UserLocationContext ctx = locationAggregationService.aggregateLocationInfo(now, DEVICE_ID);
+
+        assertThat(UserLocationContext.isEmpty(ctx)).isFalse();
+        assertThat(ctx.locationName()).isEqualTo("Coda");
+    }
 }

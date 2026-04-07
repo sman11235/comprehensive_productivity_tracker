@@ -12,7 +12,7 @@ public interface IStateActionRepository {
      * Creates and returns new place's ID.
      * @return the new place's ID.
      */
-    long createNewKnownPlace(Point centroid, Instant now);
+    long createNewKnownPlace(Point centroid, Instant now, String locationName);
     /**
      * Starts a visit at place [placeId] and at time [start].
      * @return the ID of the visit created.

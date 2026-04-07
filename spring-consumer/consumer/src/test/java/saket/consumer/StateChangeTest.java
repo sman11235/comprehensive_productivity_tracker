@@ -32,7 +32,7 @@ public class StateChangeTest {
             timestamp,
             null,
             KnownPlaceStatus.ESTABLISHED);
-    
+    private static String locationName = place.getName();
 
     @Test
     void startToVisitingWithPlace() {
@@ -40,6 +40,7 @@ public class StateChangeTest {
         boolean isStationary = true;
         UserState state = new UserState(DiscreteState.START);
         UserLocationContext context = new UserLocationContext("IPHONE",
+                                                              locationName,
                                                               timestamp,
                                                               centroid, 
                                                               isStationary, 
@@ -57,6 +58,7 @@ public class StateChangeTest {
         boolean isStationary = true;
         UserState state = new UserState(DiscreteState.START);
         UserLocationContext context = new UserLocationContext("IPHONE",
+                                                              locationName,
                                                               timestamp,
                                                               centroid, 
                                                               isStationary, 
@@ -74,6 +76,7 @@ public class StateChangeTest {
         boolean isStationary = false;
         UserState state = new UserState(DiscreteState.START);
         UserLocationContext context = new UserLocationContext("IPHONE",
+                                                                locationName,
                                                               timestamp,
                                                               centroid, 
                                                               isStationary, 
@@ -98,6 +101,7 @@ public class StateChangeTest {
         boolean isStationary = true;
         UserState state = new UserState(DiscreteState.MOVING);
         UserLocationContext context = new UserLocationContext("IPHONE",
+                                                                locationName,
                                                               timestamp,
                                                               centroid, 
                                                               isStationary, 
@@ -115,6 +119,7 @@ public class StateChangeTest {
         boolean isStationary = true;
         UserState state = new UserState(DiscreteState.MOVING);
         UserLocationContext context = new UserLocationContext("IPHONE",
+                                                                locationName,
                                                               timestamp,
                                                               centroid, 
                                                               isStationary, 
@@ -140,6 +145,7 @@ public class StateChangeTest {
         boolean isStationary = false;
         UserState state = new UserState(DiscreteState.VISITING, 10);
         UserLocationContext context = new UserLocationContext("IPHONE",
+                                                                locationName,
                                                               timestamp,
                                                               centroid, 
                                                               isStationary, 

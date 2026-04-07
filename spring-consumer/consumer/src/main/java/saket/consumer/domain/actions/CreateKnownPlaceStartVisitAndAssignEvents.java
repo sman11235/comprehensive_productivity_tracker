@@ -10,11 +10,12 @@ import org.locationtech.jts.geom.Point;
 public record CreateKnownPlaceStartVisitAndAssignEvents(
     Point centroid,
     Instant start,
-    Instant end
+    Instant end,
+    String locationName
 ) implements StateAction {
     @Override
     public ActionResult execute(IStateActionRepository context) {
-        long placeId = context.createNewKnownPlace(centroid, start);
+        long placeId = context.createNewKnownPlace(centroid, start, locationName);
         long visitId = context.startVisit(placeId, start);
         context.assignVisitToEvents(visitId, start, end);
         return new ActionResult(visitId, false);

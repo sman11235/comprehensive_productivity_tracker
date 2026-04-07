@@ -46,7 +46,8 @@ public class StartState implements IUserState {
                             locationContext.centroid(), 
                             locationContext.timestamp()
                                 .minusSeconds(Constants.MIN_TIME_FOR_VISIT * Constants.MINS_TO_SECONDS),
-                            locationContext.timestamp()
+                            locationContext.timestamp(),
+                            locationContext.locationName()
                         )
                     )
                 );

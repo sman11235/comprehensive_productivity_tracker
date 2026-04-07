@@ -45,7 +45,8 @@ public class MovingState implements IUserState {
                         new CreateKnownPlaceStartVisitAndAssignEvents(
                             locationContext.centroid(),
                             visitStart,
-                            locationContext.timestamp()
+                            locationContext.timestamp(),
+                            locationContext.locationName()
                         )
                     )
                 );

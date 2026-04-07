@@ -9,11 +9,12 @@ import org.locationtech.jts.geom.Point;
  */
 public record CreateKnownPlaceAndStartVisitAction(
 		Point centroid, 
-		Instant start
+		Instant start,
+		String locationName
 	) implements StateAction {
 		@Override
 		public ActionResult execute(IStateActionRepository ctx) {
-			long placeId = ctx.createNewKnownPlace(centroid, start);
+			long placeId = ctx.createNewKnownPlace(centroid, start, locationName);
 			long visitId = ctx.startVisit(placeId, start);
 			return new ActionResult(visitId, false);
 		}

@@ -16,6 +16,8 @@ import saket.consumer.domain.actions.IStateActionRepository;
  */
 @Repository
 public class JPAStateActionRepository implements IStateActionRepository {
+    private static final String DEFAULT_NEW_PLACE_NAME = "New Place";
+
     private final KnownPlaceRepository knownPlaceRepository;
     private final VisitRepository visitRepository;
     private final DevLogRepository devLogRepository;
@@ -41,12 +43,12 @@ public class JPAStateActionRepository implements IStateActionRepository {
     
     @Transactional
     @Override
-    public long createNewKnownPlace(Point centroid, Instant now) {
+    public long createNewKnownPlace(Point centroid, Instant now, String locationName) {
         KnownPlace newPlace = KnownPlace.builder()
             .category("New")
             .createdAt(now)
             .loc(centroid)
-            .name("New Place")
+            .name(normalizeLocationName(locationName))
             .status(KnownPlaceStatus.NEW)
             .build();
         newPlace = knownPlaceRepository.save(newPlace);
@@ -81,5 +83,12 @@ public class JPAStateActionRepository implements IStateActionRepository {
         healthLogRepository.assignVisit(visit, start, end);
         transactionLogRepository.assignVisit(visit, start, end);
         locationLogRepository.assignVisit(visit, start, end);
+    }
+
+    private String normalizeLocationName(String locationName) {
+        if (locationName == null || locationName.isBlank()) {
+            return DEFAULT_NEW_PLACE_NAME;
+        }
+        return locationName.trim();
     }
 }

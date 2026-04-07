@@ -17,6 +17,7 @@ import saket.consumer.domain.KnownPlace;
  */
 public record UserLocationContext (
     String deviceId,
+    String locationName,
     Instant timestamp,
     Point centroid,
     boolean stationary,
@@ -26,6 +27,7 @@ public record UserLocationContext (
     public static UserLocationContext empty() {
         return new UserLocationContext(
             null, 
+            null,
             null, 
             null, 
             false, 
@@ -37,6 +39,7 @@ public record UserLocationContext (
     public static boolean isEmpty(UserLocationContext ctx) {
         return 
             ctx.deviceId == null &&
+            ctx.locationName == null &&
             ctx.timestamp == null &&
             ctx.centroid == null &&
             !ctx.stationary &&

@@ -8,7 +8,7 @@ import saket.consumer.domain.actions.IStateActionRepository;
 
 public class TestStateActionImpl implements IStateActionRepository {
     @Override
-    public long createNewKnownPlace(Point centroid, Instant start) {
+    public long createNewKnownPlace(Point centroid, Instant start, String locationName) {
         System.out.println("Created new place with placeId 0");
         return 0;
     }

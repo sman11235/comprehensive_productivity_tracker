@@ -65,12 +65,15 @@ public class LocationAggregationService {
         KnownPlace closestKnownPlace = getClosestKnownPlaceInRadius(centroid, Constants.KNOWN_PLACE_MATCH_RADIUS_M).orElse(null);
 
         Instant oldestTimestamp = getOldestTimestampInWindow(window);
+
+        String locationName = getLocationName(window);
         System.out.println("Points: " + points);
         System.out.println("Window: " + window);
         System.out.println("Stationary: " + stationary);
 
         return new UserLocationContext(
             deviceId, 
+            locationName,
             currentTime, 
             centroid, 
             stationary, 
@@ -133,5 +136,18 @@ public class LocationAggregationService {
             }
         }
         return oldest;
+    }
+
+    private String getLocationName(List<LocationLog> window) {
+        LocationLog newestNamedLog = null;
+        for (LocationLog l : window) {
+            if (l.getLocationName() == null || l.getLocationName().isBlank()) {
+                continue;
+            }
+            if (newestNamedLog == null || l.getTimestamp().isAfter(newestNamedLog.getTimestamp())) {
+                newestNamedLog = l;
+            }
+        }
+        return newestNamedLog != null ? newestNamedLog.getLocationName().trim() : null;
     }
 }
