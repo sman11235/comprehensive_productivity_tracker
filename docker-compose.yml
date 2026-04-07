@@ -152,6 +152,19 @@ services:
         condition: service_healthy
     networks:
       - pf-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: pf-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - python-location-api
+    networks:
+      - pf-network
   
 networks:
   pf-network:

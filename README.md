@@ -28,6 +28,7 @@ This starts:
 
 * auth API on `http://localhost:8000`
 * location API on `http://localhost:8001`
+* frontend on `http://localhost:3000`
 * Kafka UI on `http://localhost:8080`
 * pgAdmin on `http://localhost:5050`
 * PostgreSQL on `localhost:5432`

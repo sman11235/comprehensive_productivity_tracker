@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Location Console</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Comprehensive Productivity Tracker</p>
+          <h1>Visits, known places, and live location publishing.</h1>
+          <p class="hero-copy">
+            This frontend reads visit history from the location API and sends the current browser
+            location back every 2.5 minutes with a reverse-geocoded place name.
+          </p>
+        </div>
+
+        <section class="control-panel">
+          <label class="field">
+            <span>Location API Base URL</span>
+            <input id="apiBaseUrl" type="url" value="http://localhost:8001" />
+          </label>
+
+          <label class="field">
+            <span>User ID</span>
+            <input id="userId" type="text" placeholder="optional" />
+          </label>
+
+          <div class="button-row">
+            <button id="refreshButton" type="button">Refresh Data</button>
+            <button id="startSyncButton" type="button">Start Location Sync</button>
+            <button id="stopSyncButton" type="button" class="secondary">Stop Sync</button>
+          </div>
+
+          <dl class="status-grid">
+            <div>
+              <dt>Device ID</dt>
+              <dd id="deviceIdValue">-</dd>
+            </div>
+            <div>
+              <dt>Sync Status</dt>
+              <dd id="syncStatusValue">Idle</dd>
+            </div>
+            <div>
+              <dt>Last Sent</dt>
+              <dd id="lastSentValue">Never</dd>
+            </div>
+            <div>
+              <dt>Resolved Place</dt>
+              <dd id="resolvedPlaceValue">-</dd>
+            </div>
+          </dl>
+
+          <p id="messageBanner" class="message-banner" hidden></p>
+        </section>
+      </header>
+
+      <main class="dashboard">
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Places</p>
+              <h2>Known places</h2>
+            </div>
+            <p id="knownPlacesSummary" class="panel-meta">Loading...</p>
+          </div>
+          <div id="knownPlacesList" class="places-grid"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Timeline</p>
+              <h2>Visits with associated events</h2>
+            </div>
+            <p id="visitsSummary" class="panel-meta">Loading...</p>
+          </div>
+          <div id="visitsList" class="visits-list"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

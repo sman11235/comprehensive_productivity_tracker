@@ -13,6 +13,23 @@ from producer_common import env
 app = Flask(__name__)
 
 
+@app.before_request
+def handle_preflight():
+    if request.method != "OPTIONS":
+        return None
+    return ("", 204)
+
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    requested_headers = request.headers.get("Access-Control-Request-Headers")
+    response.headers["Access-Control-Allow-Headers"] = requested_headers or "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+    response.headers["Access-Control-Max-Age"] = "86400"
+    return response
+
+
 def postgres_dsn() -> str:
     explicit_dsn = env("POSTGRES_DSN", default="")
     if explicit_dsn:
@@ -156,6 +173,32 @@ def get_visits_with_events(*, limit: int) -> list[dict[str, Any]]:
     return visits_with_events
 
 
+def get_known_places(*, limit: int) -> list[dict[str, Any]]:
+    with db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    kp.id,
+                    kp.name,
+                    kp.category,
+                    kp.status,
+                    kp.created_at,
+                    ST_Y(kp.loc::geometry) AS latitude,
+                    ST_X(kp.loc::geometry) AS longitude,
+                    COUNT(v.id) AS visit_count,
+                    MAX(v.entry_time) AS last_visit_at
+                FROM known_places kp
+                LEFT JOIN visits v ON v.place_id = kp.id
+                GROUP BY kp.id
+                ORDER BY last_visit_at DESC NULLS LAST, kp.created_at DESC, kp.id DESC
+                LIMIT %s
+                """,
+                (limit,),
+            )
+            return serialize_rows(cursor.fetchall())
+
+
 def extract_coordinates(body: dict[str, Any]) -> tuple[float, float]:
     if "latitude" in body and "longitude" in body:
         return float(body["latitude"]), float(body["longitude"])
@@ -253,6 +296,22 @@ def list_visits():
         return jsonify({"ok": False, "error": str(exc)}), 500
 
     return jsonify({"ok": True, "count": len(visits), "visits": visits}), 200
+
+
+@app.get("/known-places")
+def list_known_places():
+    limit_arg = request.args.get("limit", "100")
+    try:
+        limit = max(1, min(int(limit_arg), 200))
+    except ValueError:
+        return jsonify({"ok": False, "error": "limit must be an integer"}), 400
+
+    try:
+        places = get_known_places(limit=limit)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+    return jsonify({"ok": True, "count": len(places), "knownPlaces": places}), 200
 
 
 def main() -> None:
