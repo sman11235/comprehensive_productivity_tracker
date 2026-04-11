@@ -89,7 +89,6 @@ services:
       kafka:
         condition: service_healthy
     environment:
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/personal_foundry
       - SPRING_DATASOURCE_USERNAME=user
       - SPRING_DATASOURCE_PASSWORD=pass

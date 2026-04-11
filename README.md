@@ -40,8 +40,44 @@ If these topics are not already present, create them in Kafka UI:
 
 * `saket.dev_activity`
 * `saket.wallet`
+* `saket.location`
 
 For local development, one partition and replication factor `1` are enough.
+
+## Frontend Location Flow
+
+Open the frontend after the stack starts:
+
+```text
+http://localhost:3000
+```
+
+The frontend supports:
+
+* viewing recent visits and their associated location, transaction, health, and dev events
+* viewing known places
+* sending the browser's current location to the location API every 2.5 minutes
+* reverse-geocoding the browser coordinates into a place name before publishing
+
+The default Location API Base URL is:
+
+```text
+http://localhost:8001
+```
+
+To test the frontend:
+
+1. Start the Docker Compose stack.
+2. Open `http://localhost:3000`.
+3. Leave the Location API Base URL as `http://localhost:8001` unless you are testing a different host.
+4. Click `Refresh Data` to load visits and known places from the location API.
+5. Click `Start Location Sync`.
+6. Allow browser location permission when prompted.
+7. Confirm the page updates `Sync Status`, `Last Sent`, and `Resolved Place`.
+8. Check Kafka UI for a new message on `saket.location`.
+9. Check pgAdmin for location rows after the Spring consumer processes the event.
+
+Browser geolocation only works from secure origins. `http://localhost:3000` is allowed by browsers for local testing. If you open the frontend from another machine using a LAN IP, refresh-only workflows can still work, but location sync usually requires HTTPS.
 
 ## Python Adapter Test Flow
 
@@ -80,6 +116,7 @@ Open Kafka UI at `http://localhost:8080` and confirm new messages are present in
 
 * `saket.dev_activity`
 * `saket.wallet`
+* `saket.location`, after testing the frontend location sync flow
 
 ### Verify PostgreSQL
 
@@ -95,6 +132,9 @@ Then run:
 ```sql
 select * from dev_logs order by id desc;
 select * from transaction_logs order by id desc;
+select * from location_logs order by id desc;
+select * from visits order by id desc;
+select * from known_places order by id desc;
 select * from processed_events order by id desc;
 ```
 
@@ -102,6 +142,8 @@ You should see:
 
 * GitHub commit activity in `dev_logs`
 * Plaid transactions in `transaction_logs`
+* browser-published location events in `location_logs`
+* visit and known-place rows when the location workflow creates or updates them
 * consumed Kafka event ids in `processed_events`
 
 ## Architecture
