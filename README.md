@@ -13,6 +13,7 @@ Before starting the stack, make sure the repository root `.env` contains the ada
 * `GITHUB_USERNAME`
 * `PLAID_CLIENT_ID`
 * `PLAID_SECRET`
+* `OPENAI_API_KEY`, if you want to use the natural-language database agent
 
 You can get them from the .env.example if you dont want to create them yourself.
 
@@ -56,6 +57,7 @@ The frontend supports:
 
 * viewing recent visits and their associated location, transaction, health, and dev events
 * viewing known places
+* asking an OpenAI-powered database agent natural-language questions about productivity, spending, visits, and commit activity
 * sending the browser's current location to the location API every 2.5 minutes
 * reverse-geocoding the browser coordinates into a place name before publishing
 
@@ -153,6 +155,8 @@ You should see:
 Python adapters publish JSON events into Kafka topics such as `saket.dev_activity` and `saket.wallet`.
 
 The separate location API accepts frontend location posts, publishes `saket.location` events to Kafka, and reads visit history directly from Postgres.
+
+It also exposes an OpenAI agent endpoint that accepts natural-language questions, runs read-only SQL against Postgres/PostGIS through the OpenAI Agents SDK, and returns an analyzed answer to the frontend.
 
 The Spring Boot consumer subscribes to Kafka and routes incoming events by topic and type using strategy classes.
 

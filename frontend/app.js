@@ -28,6 +28,11 @@ const elements = {
   visitsList: document.querySelector("#visitsList"),
   knownPlacesList: document.querySelector("#knownPlacesList"),
   messageBanner: document.querySelector("#messageBanner"),
+  agentQueryInput: document.querySelector("#agentQueryInput"),
+  runAgentQueryButton: document.querySelector("#runAgentQueryButton"),
+  agentSummary: document.querySelector("#agentSummary"),
+  agentAnswer: document.querySelector("#agentAnswer"),
+  agentQueriesList: document.querySelector("#agentQueriesList"),
 };
 
 function geolocationRequiresSecureOrigin() {
@@ -271,6 +276,15 @@ async function fetchJson(path) {
   return data;
 }
 
+async function fetchApiJson(path, options = {}) {
+  const response = await fetch(`${getApiBaseUrl()}${path}`, options);
+  const data = await response.json();
+  if (!response.ok || !data.ok) {
+    throw new Error(data.error || `Request failed: ${response.status}`);
+  }
+  return data;
+}
+
 async function refreshData() {
   clearMessage();
   elements.visitsSummary.textContent = "Loading...";
@@ -443,6 +457,77 @@ async function startLocationSync() {
   state.locationIntervalId = window.setInterval(runSyncCycle, LOCATION_SYNC_INTERVAL_MS);
 }
 
+function browserTimezone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York";
+}
+
+function renderAgentQueries(queries) {
+  if (!queries.length) {
+    renderEmptyState(elements.agentQueriesList, "No SQL queries were recorded for this answer.");
+    return;
+  }
+
+  elements.agentQueriesList.innerHTML = queries
+    .map(
+      (query, index) => `
+        <article class="agent-query-card">
+          <h3>Query ${index + 1}</h3>
+          <p>${escapeHtml(query.reason || "No reason provided")} • ${escapeHtml(String(query.rowCount || 0))} rows${
+            query.truncated ? " (truncated)" : ""
+          }</p>
+          <pre>${escapeHtml(query.sql || "")}</pre>
+        </article>
+      `,
+    )
+    .join("");
+}
+
+function renderAgentResult(result) {
+  elements.agentSummary.textContent = `${result.queryCount} SQL quer${result.queryCount === 1 ? "y" : "ies"} • ${result.timezone}`;
+  elements.agentAnswer.textContent = result.answer || "No answer returned.";
+  elements.agentAnswer.classList.remove("empty-state");
+  renderAgentQueries(result.queries || []);
+}
+
+async function runAgentQuery() {
+  const query = elements.agentQueryInput.value.trim();
+  if (!query) {
+    showMessage("Enter a question for the database agent.");
+    return;
+  }
+
+  saveSettings();
+  clearMessage();
+  elements.runAgentQueryButton.disabled = true;
+  elements.agentSummary.textContent = "Running agent...";
+  elements.agentAnswer.textContent = "Analyzing your database activity...";
+  elements.agentAnswer.classList.remove("empty-state");
+  renderEmptyState(elements.agentQueriesList, "Waiting for SQL queries...");
+
+  try {
+    const result = await fetchApiJson("/agent/query", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query,
+        timezone: browserTimezone(),
+        userId: elements.userId.value.trim() || null,
+      }),
+    });
+    renderAgentResult(result);
+  } catch (error) {
+    elements.agentSummary.textContent = "Agent request failed";
+    elements.agentAnswer.textContent = "Unable to generate an answer.";
+    elements.agentAnswer.classList.add("empty-state");
+    renderEmptyState(elements.agentQueriesList, "No SQL queries to show.");
+    showMessage(error.message);
+  } finally {
+    elements.runAgentQueryButton.disabled = false;
+  }
+}
+
 function bindEvents() {
   elements.refreshButton.addEventListener("click", async () => {
     saveSettings();
@@ -457,6 +542,10 @@ function bindEvents() {
     stopLocationSync();
   });
 
+  elements.runAgentQueryButton.addEventListener("click", async () => {
+    await runAgentQuery();
+  });
+
   elements.apiBaseUrl.addEventListener("change", saveSettings);
   elements.userId.addEventListener("change", saveSettings);
 }
@@ -467,6 +556,7 @@ function init() {
   setResolvedPlace("");
   setLastSent("");
   setSyncStatus("Stopped");
+  elements.agentQueryInput.value = "On what days and times am I most productive?";
   bindEvents();
   if (geolocationRequiresSecureOrigin()) {
     showMessage(geolocationSetupMessage());

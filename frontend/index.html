@@ -62,6 +62,36 @@
         <section class="panel">
           <div class="panel-heading">
             <div>
+              <p class="eyebrow">Agent</p>
+              <h2>Ask the database agent</h2>
+            </div>
+            <p id="agentSummary" class="panel-meta">Uses the OpenAI agent plus read-only SQL tools.</p>
+          </div>
+
+          <div class="agent-panel">
+            <label class="field">
+              <span>Question</span>
+              <textarea
+                id="agentQueryInput"
+                rows="3"
+                placeholder="On what days and times am I most productive?"
+              ></textarea>
+            </label>
+
+            <div class="button-row">
+              <button id="runAgentQueryButton" type="button">Ask Agent</button>
+            </div>
+
+            <div id="agentAnswer" class="agent-answer empty-state">
+              Ask a question about productivity, spending, visits, or commit activity.
+            </div>
+            <div id="agentQueriesList" class="agent-queries"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
               <p class="eyebrow">Places</p>
               <h2>Known places</h2>
             </div>

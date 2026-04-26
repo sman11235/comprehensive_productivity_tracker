@@ -4,6 +4,7 @@ Static browser frontend for:
 
 * viewing recent visits and their associated events
 * viewing known places
+* asking the OpenAI database agent natural-language questions
 * sending the browser's current location to `location_api` every 2.5 minutes
 
 ## Run
@@ -53,3 +54,4 @@ http://localhost:8001
   * `GET /visits`
   * `GET /known-places`
   * `POST /locations`
+  * `POST /agent/query`

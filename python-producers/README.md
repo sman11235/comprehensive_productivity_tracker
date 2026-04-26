@@ -94,10 +94,29 @@ Available endpoints:
 * `GET /health`
 * `POST /locations`
 * `GET /visits`
+* `POST /agent/query`
+* `GET /agent/user-summary`
 
 `POST /locations` accepts frontend location payloads and publishes `saket.location` events for the Spring consumer.
 
 `GET /visits` reads `visits` plus the linked `location_logs`, `transaction_logs`, `health_logs`, and `dev_logs` directly from Postgres.
+
+`POST /agent/query` sends a natural-language question to an OpenAI agent. The agent uses read-only SQL tools against `visits`, `known_places`, `location_logs`, `transaction_logs`, `health_logs`, and `dev_logs`, then returns the answer plus the SQL it executed.
+
+Required environment:
+
+* `OPENAI_API_KEY`
+* optional `OPENAI_AGENT_MODEL`
+
+Example:
+
+```text
+POST /agent/query
+{
+  "query": "On what days and times am I most productive?",
+  "timezone": "America/New_York"
+}
+```
 
 For manual testing before the real frontend exists, open:
 

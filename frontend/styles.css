@@ -108,6 +108,17 @@ body {
   background: rgba(255, 255, 255, 0.84);
 }
 
+.field textarea {
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 14px 16px;
+  font: inherit;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.84);
+  resize: vertical;
+  min-height: 96px;
+}
+
 .button-row {
   display: flex;
   flex-wrap: wrap;
@@ -188,9 +199,47 @@ button.secondary {
 }
 
 .places-grid,
-.visits-list {
+.visits-list,
+.agent-queries {
   display: grid;
   gap: 16px;
+}
+
+.agent-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.agent-answer {
+  white-space: pre-wrap;
+  text-align: left;
+}
+
+.agent-query-card {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--panel-strong);
+  padding: 16px 18px;
+}
+
+.agent-query-card h3 {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: 1rem;
+}
+
+.agent-query-card p {
+  margin: 0 0 10px;
+}
+
+.agent-query-card pre {
+  margin: 0;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(42, 36, 27, 0.06);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .places-grid {

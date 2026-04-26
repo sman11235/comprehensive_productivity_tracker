@@ -9,6 +9,7 @@ from psycopg.rows import dict_row
 
 from location_event_producer import publish_location_event
 from producer_common import env
+from user_summary_agent import generate_user_summary
 
 app = Flask(__name__)
 
@@ -312,6 +313,40 @@ def list_known_places():
         return jsonify({"ok": False, "error": str(exc)}), 500
 
     return jsonify({"ok": True, "count": len(places), "knownPlaces": places}), 200
+
+
+@app.route("/agent/query", methods=["GET", "POST"])
+def agent_query():
+    payload = request.get_json(silent=True) if request.method == "POST" else None
+    args = payload or request.args
+
+    question = (args.get("query") or args.get("question") or "").strip()
+    if not question:
+        return jsonify({"ok": False, "error": "query is required"}), 400
+
+    timezone_name = (args.get("timezone") or env("AGENT_TIMEZONE", default="America/New_York")).strip()
+    model_name = (args.get("model") or env("OPENAI_AGENT_MODEL", default="")).strip() or None
+
+    try:
+        result = generate_user_summary(
+            question=question,
+            dsn=postgres_dsn(),
+            timezone_name=timezone_name,
+            model_name=model_name,
+        )
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    except RuntimeError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 503
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+    return jsonify({"ok": True, **result}), 200
+
+
+@app.route("/agent/user-summary", methods=["GET", "POST"])
+def agent_user_summary():
+    return agent_query()
 
 
 def main() -> None:
