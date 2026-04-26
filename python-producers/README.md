@@ -8,8 +8,8 @@ A separate Python auth API handles the interactive login/authentication flows. T
 
 ### Dev: GitHub REST API
 
-* Configured here specifically for public commit tracking only.
-* Works without a token by polling GitHub's public events API, though a token is still optional for higher rate limits.
+* Works without a token by polling GitHub's public events API.
+* If `GITHUB_TOKEN` is set, the producer first uses the authenticated user activity feed so private-account push activity can be ingested too.
 
 ### Transactions: Plaid Transactions Sync API
 
@@ -219,18 +219,20 @@ Default sandbox settings:
 
 The producer emits:
 
-* one event per commit from public `PushEvent` payloads
+* one event per commit from GitHub `PushEvent` payloads
 * `timestamp` from GitHub push `created_at`
 * `platform=github`
 * `actionType=commit`
 * `target` from `repo.name`
 * `metadata` with commit SHA, commit message, author info, ref, and repo details
 
+If you need commit events from private repositories or non-public account activity, set `GITHUB_TOKEN`. Without a token, GitHub only exposes `/events/public`, so private pushes will never reach Kafka.
+
 ### Plaid -> `TransactionLog`
 
 The producer emits:
 
 * `externTxnId` from `transaction_id`
-* `timestamp` from `authorized_datetime`, `datetime`, or a noon UTC fallback for `date`
+* `timestamp` from `authorized_datetime`, `datetime`, or a deterministic synthetic time within the transaction date when Plaid only provides `date`
 * `amount` from Plaid `amount`
 * `category` from personal finance category data when present

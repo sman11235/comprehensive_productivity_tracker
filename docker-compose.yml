@@ -123,6 +123,26 @@ services:
     networks:
       - pf-network
 
+  python-github-poller:
+    build:
+      context: .
+      dockerfile: python-producers/Dockerfile
+    container_name: pf-python-github-poller
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - RUN_MODE=loop
+      - PRODUCER_SCRIPT=github_dev_producer.py
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+    volumes:
+      - ./python-producers/.state:/app/python-producers/.state
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - pf-network
+
   python-location-api:
     build:
       context: .

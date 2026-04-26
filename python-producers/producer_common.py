@@ -4,7 +4,7 @@ import json
 import os
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -16,7 +16,7 @@ def utc_now_iso() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def to_iso8601(value: str | None, *, fallback_date: date | None = None) -> str:
+def to_iso8601(value: str | None, *, fallback_date: date | None = None, fallback_seconds: int = 12 * 60 * 60) -> str:
     if value:
         normalized = value.replace("Z", "+00:00")
         parsed = datetime.fromisoformat(normalized)
@@ -27,7 +27,7 @@ def to_iso8601(value: str | None, *, fallback_date: date | None = None) -> str:
     if fallback_date is None:
         fallback_date = datetime.now(UTC).date()
 
-    parsed = datetime.combine(fallback_date, datetime.min.time(), tzinfo=UTC).replace(hour=12)
+    parsed = datetime.combine(fallback_date, datetime.min.time(), tzinfo=UTC) + timedelta(seconds=fallback_seconds % (24 * 60 * 60))
     return parsed.isoformat().replace("+00:00", "Z")
 
 

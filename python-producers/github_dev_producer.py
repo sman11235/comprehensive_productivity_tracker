@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 from typing import Any
 
+import requests
+
 from producer_common import JsonApiClient, KafkaEventPublisher, build_event, env, load_json_file, save_json_file, to_iso8601
 
 TOPIC = "saket.dev_activity"
@@ -27,7 +29,18 @@ def fetch_events(username: str, limit: int) -> list[dict[str, Any]]:
         headers["Authorization"] = f"Bearer {token}"
 
     client = JsonApiClient(base_url="https://api.github.com", headers=headers)
-    response = client.get(f"/users/{username}/events/public", params={"per_page": min(limit, 100)})
+    params = {"per_page": min(limit, 100)}
+
+    if token:
+        try:
+            response = client.get(f"/users/{username}/events", params=params)
+            return response if isinstance(response, list) else []
+        except requests.HTTPError:
+            # Fall back to the public activity feed when the token cannot read the
+            # authenticated activity stream for this username.
+            pass
+
+    response = client.get(f"/users/{username}/events/public", params=params)
     return response if isinstance(response, list) else []
 
 
@@ -73,7 +86,7 @@ def commit_events(push_event: dict[str, Any], username: str, device_id: str) -> 
                 },
             },
             attributes={
-                "provider": "github-public-events",
+                "provider": "github-authenticated-events" if env("GITHUB_TOKEN", default="") else "github-public-events",
                 "username": username,
                 "eventType": "PushEvent",
             },

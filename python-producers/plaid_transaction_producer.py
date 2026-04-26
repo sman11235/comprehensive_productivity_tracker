@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 from datetime import date
 from typing import Any
 
@@ -56,7 +57,26 @@ def choose_timestamp(txn: dict[str, Any]) -> str:
     posted = txn.get("datetime")
     txn_date = txn.get("date")
     fallback = date.fromisoformat(txn_date) if txn_date else None
-    return to_iso8601(authorized or posted, fallback_date=fallback)
+    if authorized or posted:
+        return to_iso8601(authorized or posted, fallback_date=fallback)
+    return synthetic_transaction_timestamp(txn, fallback)
+
+
+def synthetic_transaction_timestamp(txn: dict[str, Any], fallback_date: date | None) -> str:
+    if fallback_date is None:
+        return to_iso8601(None, fallback_date=None)
+
+    seed = txn.get("transaction_id") or txn.get("pending_transaction_id") or txn.get("name") or "plaid"
+    digest = hashlib.sha256(seed.encode("utf-8")).digest()
+
+    seconds_in_day = 24 * 60 * 60
+    second_offset = int.from_bytes(digest[:4], "big") % seconds_in_day
+    # Spread synthetic timestamps across the day while remaining stable per transaction.
+    return to_iso8601(
+        None,
+        fallback_date=fallback_date,
+        fallback_seconds=second_offset,
+    )
 
 
 def choose_category(txn: dict[str, Any]) -> str:
