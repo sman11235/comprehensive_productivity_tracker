@@ -1,99 +1,68 @@
 # Comprehensive Productivity Tracker
 
-A personal data pipeline that ingests events from APIs and devices into Kafka, consumes them with Spring Boot, and persists them into Postgres/PostGIS for later enrichment and analysis.
+This repository is a local-first productivity data pipeline:
 
-## Local Run
+* Python APIs and pollers ingest external activity and browser location data
+* Kafka transports normalized events
+* A Spring Boot consumer persists events into PostgreSQL/PostGIS
+* A static frontend shows visits, known places, and an OpenAI-backed database query experience
 
-### Prerequisites
+## Services
 
-Install Docker and Docker Compose.
+Run the stack with Docker Compose and the repository exposes:
 
-Before starting the stack, make sure the repository root `.env` contains the adapter settings you want to test:
+* frontend: `http://localhost:3000`
+* auth API: `http://localhost:8000`
+* location API: `http://localhost:8001`
+* Kafka UI: `http://localhost:8080`
+* pgAdmin: `http://localhost:5050`
+* PostgreSQL: `localhost:5432`
+
+## Prerequisites
+
+Before starting the stack:
+
+* install Docker and Docker Compose
+* create the repository root `.env`
+* use [python-producers/.env.example](/home/saket/programming/cs4365_project_comprehensive_productivity_tracker/python-producers/.env.example) as the template
+
+Common variables:
 
 * `GITHUB_USERNAME`
+* `GITHUB_TOKEN`, optional but useful for private GitHub activity
 * `PLAID_CLIENT_ID`
 * `PLAID_SECRET`
-* `OPENAI_API_KEY`, if you want to use the natural-language database agent
+* `OPENAI_API_KEY`, only required for the natural-language database agent
 
-You can get them from the .env.example if you dont want to create them yourself.
+## Start The Stack
 
-### Start The Stack
-
-Run from the repository root:
+From the repository root:
 
 ```bash
 docker compose up --build
 ```
 
-This starts:
+Wait until these endpoints are reachable:
 
-* auth API on `http://localhost:8000`
-* location API on `http://localhost:8001`
-* frontend on `http://localhost:3000`
-* Kafka UI on `http://localhost:8080`
-* pgAdmin on `http://localhost:5050`
-* PostgreSQL on `localhost:5432`
-* the Spring Kafka consumer
+* `http://localhost:8000/health`
+* `http://localhost:8001/health`
+* `http://localhost:3000`
+* `http://localhost:8080`
+* `http://localhost:5050`
 
-### Create Kafka Topics
+## Kafka Topics
 
-If these topics are not already present, create them in Kafka UI:
+Create these topics in Kafka UI if they do not already exist:
 
 * `saket.dev_activity`
 * `saket.wallet`
 * `saket.location`
 
-For local development, one partition and replication factor `1` are enough.
+For local development, one partition and replication factor `1` are sufficient.
 
-## Frontend Location Flow
+## Local Verification Flow
 
-Open the frontend after the stack starts:
-
-```text
-http://localhost:3000
-```
-
-The frontend supports:
-
-* viewing recent visits and their associated location, transaction, health, and dev events
-* viewing known places
-* asking an OpenAI-powered database agent natural-language questions about productivity, spending, visits, and commit activity
-* sending the browser's current location to the location API every 2.5 minutes
-* reverse-geocoding the browser coordinates into a place name before publishing
-
-The default Location API Base URL is:
-
-```text
-http://localhost:8001
-```
-
-To test the frontend:
-
-1. Start the Docker Compose stack.
-2. Open `http://localhost:3000`.
-3. Leave the Location API Base URL as `http://localhost:8001` unless you are testing a different host.
-4. Click `Refresh Data` to load visits and known places from the location API.
-5. Click `Start Location Sync`.
-6. Allow browser location permission when prompted.
-7. Confirm the page updates `Sync Status`, `Last Sent`, and `Resolved Place`.
-8. Check Kafka UI for a new message on `saket.location`.
-9. Check pgAdmin for location rows after the Spring consumer processes the event.
-
-Browser geolocation only works from secure origins. `http://localhost:3000` is allowed by browsers for local testing. If you open the frontend from another machine using a LAN IP, refresh-only workflows can still work, but location sync usually requires HTTPS.
-
-## Python Adapter Test Flow
-
-The current end-to-end verification path for the Python adapters is:
-
-1. Open `http://localhost:8000/auth/test`
-2. Log in to Plaid with `Connect Plaid`
-3. Run `Run All Pollers`
-4. Check Kafka for published events
-5. Check pgAdmin for persisted rows
-
-If you only need a local sandbox Plaid item, `Seed Plaid Sandbox Item` is an acceptable shortcut.
-
-### Auth Test Page
+### 1. Connect Plaid And Run Pollers
 
 Open:
 
@@ -101,78 +70,179 @@ Open:
 http://localhost:8000/auth/test
 ```
 
-The page exposes:
+Use the test page actions:
 
 * `Connect Plaid`
 * `Seed Plaid Sandbox Item`
 * `Run All Pollers`
 
-`Run All Pollers` executes both Python pollers:
+Recommended path:
 
-* GitHub dev activity producer
-* Plaid transaction producer
+1. Connect Plaid.
+2. If interactive Plaid Link is not practical, use `Seed Plaid Sandbox Item` instead.
+3. Run `Run All Pollers`.
 
-### Verify Kafka
+`Run All Pollers` triggers:
 
-Open Kafka UI at `http://localhost:8080` and confirm new messages are present in:
+* GitHub dev activity sync
+* Plaid transactions sync
+
+The auth API also exposes direct endpoints for named pollers and Plaid auth flows, but the test page is the intended local workflow.
+
+### 2. Verify Kafka
+
+Open Kafka UI:
+
+```text
+http://localhost:8080
+```
+
+Confirm new messages appear in:
 
 * `saket.dev_activity`
 * `saket.wallet`
-* `saket.location`, after testing the frontend location sync flow
+* `saket.location`, after testing browser location sync
 
-### Verify PostgreSQL
+### 3. Test The Frontend
 
-Open pgAdmin at `http://localhost:5050` and sign in with:
+Open:
+
+```text
+http://localhost:3000
+```
+
+The frontend supports:
+
+* viewing recent visits with linked location, transaction, health, and dev events
+* viewing known places
+* asking natural-language questions through the location API agent
+* posting the browser's current location every 2.5 minutes
+* reverse-geocoding coordinates in the browser before publishing
+
+Default API base URL:
+
+```text
+http://localhost:8001
+```
+
+Suggested test flow:
+
+1. Click `Refresh Data`.
+2. Confirm visits and known places load without errors.
+3. Click `Start Location Sync`.
+4. Allow browser location permission.
+5. Confirm `Sync Status`, `Last Sent`, and `Resolved Place` update.
+6. Check Kafka UI for a new event on `saket.location`.
+
+Browser geolocation works on `http://localhost` for local testing. If you open the frontend from a LAN IP over plain HTTP, refresh and agent queries can still work, but location sync usually requires HTTPS.
+
+### 4. Verify PostgreSQL
+
+Open pgAdmin:
+
+```text
+http://localhost:5050
+```
+
+Credentials:
 
 * email: `admin@admin.com`
 * password: `admin`
 
-Use the configured server and enter the database password `pass` if prompted.
+Database connection:
 
-Then run:
+* database: `personal_foundry`
+* username: `user`
+* password: `pass`
+
+Run:
 
 ```sql
 select * from dev_logs order by id desc;
 select * from transaction_logs order by id desc;
 select * from location_logs order by id desc;
+select * from health_logs order by id desc;
 select * from visits order by id desc;
 select * from known_places order by id desc;
 select * from processed_events order by id desc;
 ```
 
-You should see:
+Expected results:
 
 * GitHub commit activity in `dev_logs`
 * Plaid transactions in `transaction_logs`
 * browser-published location events in `location_logs`
-* visit and known-place rows when the location workflow creates or updates them
-* consumed Kafka event ids in `processed_events`
+* visit and known-place records when location aggregation creates or updates them
+* consumed event ids in `processed_events`
+
+`health_logs` exists in the schema and is shown in the frontend when populated, but the current local workflow in this repository does not include a health producer.
+
+## APIs
+
+### Auth API
+
+Base URL:
+
+```text
+http://localhost:8000
+```
+
+Key endpoints:
+
+* `GET /health`
+* `GET /auth/test`
+* `POST /pollers/github/run`
+* `POST /pollers/plaid/run`
+* `POST /pollers/run-all`
+* `POST /auth/plaid/link-token`
+* `POST /auth/plaid/exchange-public-token`
+* `POST /auth/plaid/sandbox-seed`
+
+### Location API
+
+Base URL:
+
+```text
+http://localhost:8001
+```
+
+Key endpoints:
+
+* `GET /health`
+* `POST /locations`
+* `GET /visits`
+* `GET /known-places`
+* `GET /agent/query`
+* `POST /agent/query`
+* `GET /agent/user-summary`
+* `POST /agent/user-summary`
+
+The OpenAI-backed agent requires `OPENAI_API_KEY`. Without it, agent endpoints return an error while the rest of the stack continues to work.
 
 ## Architecture
 
 ### Ingestion
 
-Python adapters publish JSON events into Kafka topics such as `saket.dev_activity` and `saket.wallet`.
+* the auth API manages Plaid connection state and can trigger the GitHub and Plaid pollers
+* the location API accepts browser location posts and publishes `saket.location`
+* Python pollers publish normalized JSON events into Kafka
 
-The separate location API accepts frontend location posts, publishes `saket.location` events to Kafka, and reads visit history directly from Postgres.
+### Consumption
 
-It also exposes an OpenAI agent endpoint that accepts natural-language questions, runs read-only SQL against Postgres/PostGIS through the OpenAI Agents SDK, and returns an analyzed answer to the frontend.
+* the Spring Boot consumer subscribes to Kafka topics
+* strategy classes route events by topic and payload type
+* processed event ids are stored for deduplication
 
-The Spring Boot consumer subscribes to Kafka and routes incoming events by topic and type using strategy classes.
+### Storage And Read APIs
 
-### Enrichment
-
-The consumer persists incoming events into relational tables and can associate them with visit context when location-based workflows are active.
-
-### Storage
-
-Postgres + PostGIS
-
-Key tables:
+PostgreSQL/PostGIS stores:
 
 * `dev_logs`
 * `transaction_logs`
 * `location_logs`
+* `health_logs`
 * `visits`
 * `known_places`
 * `processed_events`
+
+The location API reads visits and known places directly from Postgres for the frontend and delegates natural-language analysis to the OpenAI-backed SQL agent.

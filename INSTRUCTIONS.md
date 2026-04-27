@@ -2,86 +2,92 @@
 
 ## Purpose
 
-This document is for an AI agent or developer who needs to verify the new Python adapters and frontend location flow locally.
+This document is the current local verification guide for the repository. Use it when you need to confirm that:
 
-The current local test flow is:
+* the Docker Compose stack starts correctly
+* Plaid auth and the Python pollers publish Kafka events
+* the frontend can read visits and known places
+* browser location sync produces `saket.location` events
+* the Spring consumer persists processed data into PostgreSQL
 
-1. start the Docker Compose stack
-2. open the auth test page at `http://localhost:8000/auth/test`
-3. log in to Plaid
-4. run all pollers
-5. confirm Kafka received the events
-6. confirm PostgreSQL persisted the events
-7. open the frontend at `http://localhost:3000`
-8. refresh visit and known-place data
-9. start location sync and confirm a browser location event reaches Kafka/Postgres
-
-Old instructions for manually publishing six location events are obsolete for this workflow and should be ignored.
+Older instructions that depended on manually publishing batches of location events are obsolete for this repository state.
 
 ## Expected Services
 
-From `docker-compose.yml`, the local stack exposes:
+The Compose stack exposes:
 
+* frontend: `http://localhost:3000`
 * auth API: `http://localhost:8000`
 * location API: `http://localhost:8001`
-* frontend: `http://localhost:3000`
 * Kafka UI: `http://localhost:8080`
 * pgAdmin: `http://localhost:5050`
 * PostgreSQL: `localhost:5432`
 
 Relevant credentials:
 
-* Postgres database: `personal_foundry`
-* Postgres username: `user`
-* Postgres password: `pass`
+* database: `personal_foundry`
+* database username: `user`
+* database password: `pass`
 * pgAdmin email: `admin@admin.com`
 * pgAdmin password: `admin`
 
-## Topics and Tables
+## Topics And Tables
 
-The Python adapters publish to these Kafka topics:
+Kafka topics used by the current workflow:
 
 * `saket.dev_activity`
 * `saket.wallet`
 * `saket.location`
 
-The Spring consumer persists them to these tables:
+Relevant database tables:
 
 * `dev_logs`
 * `transaction_logs`
 * `location_logs`
+* `health_logs`
 * `visits`
 * `known_places`
 * `processed_events`
+
+`health_logs` is part of the schema and frontend read model, but there is no health producer in the current local verification path.
 
 ## Prerequisites
 
 Before starting the stack:
 
-* Docker and Docker Compose must be installed.
-* The repository root `.env` file must contain valid adapter configuration.
-* At minimum, verify:
-  * `GITHUB_USERNAME`
-  * `PLAID_CLIENT_ID`
-  * `PLAID_SECRET`
+* install Docker and Docker Compose
+* create the repository root `.env`
+* use [python-producers/.env.example](/home/saket/programming/cs4365_project_comprehensive_productivity_tracker/python-producers/.env.example) as the template
 
-If the Kafka topics do not already exist, create them in Kafka UI before running the pollers:
+Minimum variables to verify:
+
+* `GITHUB_USERNAME`
+* `PLAID_CLIENT_ID`
+* `PLAID_SECRET`
+
+Optional variables:
+
+* `GITHUB_TOKEN`
+* `OPENAI_API_KEY`
+* `OPENAI_AGENT_MODEL`
+
+If the Kafka topics do not already exist, create them in Kafka UI before running pollers:
 
 * `saket.dev_activity`
 * `saket.wallet`
 * `saket.location`
 
-One partition and replication factor `1` are sufficient for local development.
+Use one partition and replication factor `1` for local development.
 
-## Step 1: Start the Stack
+## Step 1: Start The Stack
 
-From the repository root, run:
+From the repository root:
 
 ```bash
 docker compose up --build
 ```
 
-Wait until these services are reachable:
+Wait for these to become reachable:
 
 * `http://localhost:8000/health`
 * `http://localhost:8001/health`
@@ -89,9 +95,13 @@ Wait until these services are reachable:
 * `http://localhost:8080`
 * `http://localhost:5050`
 
-The `python-auth-api` container serves the auth page and runs the poller endpoints. The `python-location-api` container accepts frontend location posts and serves visit/known-place reads. The Spring consumer should also be running before verification starts.
+Service notes:
 
-## Step 2: Open the Auth Test Page
+* `python-auth-api` serves the Plaid test page and poller endpoints
+* `python-location-api` accepts location posts and serves visits, known places, and agent responses
+* `spring-consumer` must be healthy enough to consume Kafka events before verification is meaningful
+
+## Step 2: Open The Auth Test Page
 
 Open:
 
@@ -99,100 +109,102 @@ Open:
 http://localhost:8000/auth/test
 ```
 
-This page contains three relevant actions:
+The page contains:
 
 * `Connect Plaid`
 * `Seed Plaid Sandbox Item`
 * `Run All Pollers`
 
-## Step 3: Log In to Plaid
+## Step 3: Connect Plaid
 
 Preferred path:
 
 * click `Connect Plaid`
 * complete Plaid Link
-* wait for the page to report that Plaid is connected
+* wait for the page to show a connected result
 
-If interactive Plaid Link is unavailable in the local environment, the sandbox shortcut is acceptable:
+Fallback path:
 
 * click `Seed Plaid Sandbox Item`
 
-Either path should save Plaid credentials into `python-producers/.state/plaid.json` for later poller runs.
+Either path should write Plaid state into `python-producers/.state/plaid.json`.
 
 ## Step 4: Run All Pollers
 
-From the same auth test page:
+From the auth test page:
 
 * click `Run All Pollers`
 
-This calls `POST /pollers/run-all`, which runs:
+This calls `POST /pollers/run-all` and runs:
 
 * the GitHub dev activity poller
 * the Plaid transactions poller
 
-Successful output should show a result entry per poller and a `published_count` for each one.
+Expected result:
+
+* one result object per poller
+* `published_count` shown for successful runs
 
 ## Step 5: Verify Kafka
 
-Open Kafka UI:
+Open:
 
 ```text
 http://localhost:8080
 ```
 
-Check the topics:
+Check:
 
 * `saket.dev_activity`
 * `saket.wallet`
-* `saket.location`, after the frontend location test
+* `saket.location`, after frontend location sync
 
-Confirm that new messages exist after the pollers run.
+Minimum validation:
 
-At a minimum:
+* GitHub events appear in `saket.dev_activity`
+* Plaid transaction events appear in `saket.wallet`
+* frontend location events appear in `saket.location`
 
-* GitHub events should appear in `saket.dev_activity`
-* Plaid transaction events should appear in `saket.wallet`
-* frontend location events should appear in `saket.location` after the frontend location test
+If Kafka stays empty, inspect the auth test page response before moving on.
 
-If no new messages appear, inspect the auth page response for poller errors before moving on.
+## Step 6: Test The Frontend Read And Location Flow
 
-## Step 6: Test the Frontend Location Flow
-
-Open the frontend:
+Open:
 
 ```text
 http://localhost:3000
 ```
 
-The page can:
+Expected frontend capabilities:
 
-* display recent visits and their associated events
-* display known places
-* send the browser's current location to the location API every 2.5 minutes
-* reverse-geocode coordinates into a readable place name before publishing
+* read visits from `GET /visits`
+* read known places from `GET /known-places`
+* post browser location to `POST /locations`
+* run database-agent questions against `POST /agent/query`
 
-The default Location API Base URL should be:
+Default API base URL:
 
 ```text
 http://localhost:8001
 ```
 
-To verify the frontend:
+Verification flow:
 
 1. Click `Refresh Data`.
-2. Confirm the visits and known places sections either load data or show an empty state without crashing.
+2. Confirm the visits and known places sections load without crashing.
 3. Click `Start Location Sync`.
-4. Allow browser location permission when prompted.
+4. Allow browser location permission.
 5. Confirm `Sync Status`, `Last Sent`, and `Resolved Place` update.
-6. Open Kafka UI and confirm a new event appears on `saket.location`.
+6. Confirm Kafka UI shows a new event on `saket.location`.
+7. Refresh the frontend again and confirm the new location data is visible after the consumer processes it.
 
-Expected location event shape:
+Expected location event characteristics:
 
-* Kafka topic: `saket.location`
-* event envelope includes `eventId`, `deviceId`, `source`, `type`, `op`, `observedAt`, `payload`, and `attributes`
-* payload includes `timestamp`, `deviceId`, `locationName`, and `loc.coord`
+* topic: `saket.location`
+* envelope includes `eventId`, `deviceId`, `source`, `type`, `op`, `observedAt`, `payload`, and `attributes`
+* payload includes a timestamp, a device id, a location name, and GeoJSON-style coordinates
 
-Browser geolocation only works from secure origins. `http://localhost:3000` is acceptable for local testing. If the frontend is opened from another computer over `http://<lan-ip>:3000`, the browser may block location sync unless the page is served over HTTPS.
+Browser geolocation only works from secure origins or `http://localhost`. If the frontend is opened from another machine over `http://<lan-ip>:3000`, geolocation will usually fail unless the frontend is served over HTTPS.
 
 ## Step 7: Verify PostgreSQL Persistence
 
@@ -202,23 +214,24 @@ Open pgAdmin:
 http://localhost:5050
 ```
 
-Log in with:
+Login:
 
 * email: `admin@admin.com`
 * password: `admin`
 
-Open the configured server. If prompted for the server password, enter:
+If pgAdmin asks for the server password, enter:
 
 ```text
 pass
 ```
 
-Open the `personal_foundry` database and run these queries:
+Open database `personal_foundry` and run:
 
 ```sql
 select * from dev_logs order by id desc;
 select * from transaction_logs order by id desc;
 select * from location_logs order by id desc;
+select * from health_logs order by id desc;
 select * from visits order by id desc;
 select * from known_places order by id desc;
 select * from processed_events order by id desc;
@@ -226,49 +239,54 @@ select * from processed_events order by id desc;
 
 Verification criteria:
 
-* rows from GitHub events are present in `dev_logs`
-* rows from Plaid events are present in `transaction_logs`
-* rows from frontend location events are present in `location_logs`
-* visit and known-place rows are present when the location workflow creates or updates them
-* consumed Kafka event ids are present in `processed_events`
+* GitHub rows exist in `dev_logs`
+* Plaid rows exist in `transaction_logs`
+* frontend location rows exist in `location_logs`
+* visit and known-place rows exist when location aggregation creates or updates them
+* consumed Kafka ids exist in `processed_events`
+
+Do not treat an empty `health_logs` table as a failure for this workflow.
 
 ## Success Condition
 
-The local verification is successful when all of the following are true:
+Local verification is successful when all of the following are true:
 
-* Plaid authentication completed successfully
-* `Run All Pollers` completed without errors
+* the Compose stack starts
+* Plaid authentication or sandbox seeding succeeds
+* `Run All Pollers` completes without poller errors
 * Kafka UI shows new messages in `saket.dev_activity` and `saket.wallet`
-* the frontend loads at `http://localhost:3000`
-* `Refresh Data` successfully reads from the location API
+* the frontend loads and can refresh visits and known places
 * `Start Location Sync` successfully posts a browser location event
 * Kafka UI shows a new message in `saket.location`
-* pgAdmin shows newly persisted rows in `dev_logs`, `transaction_logs`, `location_logs`, and `processed_events`
+* PostgreSQL contains new rows in `dev_logs`, `transaction_logs`, `location_logs`, and `processed_events`
 
 ## Failure Handling
 
 If Plaid login fails:
 
 * verify `PLAID_CLIENT_ID` and `PLAID_SECRET` in `.env`
-* use `Seed Plaid Sandbox Item` as a local fallback
+* use `Seed Plaid Sandbox Item` as the fallback path
 
 If the pollers fail:
 
-* inspect the JSON response shown on `http://localhost:8000/auth/test`
+* inspect the JSON response shown by `http://localhost:8000/auth/test`
 * verify `GITHUB_USERNAME` is set
 * verify the Kafka topics exist
-* verify the auth API is using the correct Kafka bootstrap server for Compose: `kafka:29092`
+* verify the auth API is using `kafka:29092` inside Compose
 
-If Kafka receives messages but PostgreSQL does not:
+If the frontend cannot refresh data:
 
-* inspect the `spring-consumer` container logs
-* verify the Spring consumer is connected to Kafka
-* verify the database schema exists and the consumer is healthy
+* verify `http://localhost:8001/health`
+* verify the API base URL is `http://localhost:8001`
+* inspect browser console and network failures
 
-If the frontend cannot post location:
+If location sync fails:
 
-* verify `http://localhost:8001/health` returns `ok: true`
-* verify the Location API Base URL is `http://localhost:8001`
-* verify the browser granted location permission
-* verify the page is opened from `http://localhost:3000` or another secure origin
-* inspect the `python-location-api` container logs for Kafka or database errors
+* verify browser location permission
+* verify the frontend is opened on `http://localhost:3000` or HTTPS
+* verify the location API is reachable and Kafka is healthy
+
+If agent queries fail:
+
+* verify `OPENAI_API_KEY` is set
+* remember that agent endpoints are optional and are not required for Kafka or persistence verification
