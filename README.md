@@ -42,7 +42,17 @@ From the repository root:
 docker compose up --build
 ```
 
-PostgreSQL state is stored in the named Docker volume `postgres-data`, so database contents survive container recreation. If you need to rerun the init scripts against a fresh database, remove that volume first.
+PostgreSQL state is stored in the named Docker volume `postgres-data`, mounted at `/var/lib/postgresql` to match PostgreSQL 18+ image expectations.
+
+If you previously started the stack with the older `/var/lib/postgresql/data` mount, that existing volume layout will cause PostgreSQL 18+ to refuse startup. If you do not need the old local data, reset with:
+
+```bash
+docker compose down -v
+```
+
+If you do need the old data, migrate it with PostgreSQL upgrade tooling or a dump/restore before switching images or mount layout.
+
+After a reset, the init scripts will run again on first startup.
 
 Wait until these endpoints are reachable:
 
