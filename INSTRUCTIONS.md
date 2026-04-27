@@ -87,6 +87,8 @@ From the repository root:
 docker compose up --build
 ```
 
+PostgreSQL state is stored in the named Docker volume `postgres-data`, so database contents survive container recreation. If you need a clean database and want the init scripts to run again, remove that volume first.
+
 Wait for these to become reachable:
 
 * `http://localhost:8000/health`
