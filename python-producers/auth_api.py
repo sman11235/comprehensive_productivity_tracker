@@ -64,6 +64,27 @@ def available_pollers() -> dict[str, PollerFn]:
     }
 
 
+def poller_result(name: str, published_count: int) -> dict[str, object]:
+    result: dict[str, object] = {
+        "poller": name,
+        "ok": True,
+        "published_count": published_count,
+    }
+    if name == "github" and published_count == 0:
+        token_configured = bool(env("GITHUB_TOKEN", default=""))
+        if token_configured:
+            result["note"] = (
+                "The GitHub poller only counts commits that appear in GitHub PushEvents. Your push may still be "
+                "waiting on GitHub event feed latency, which GitHub documents as roughly 30 seconds to 6 hours."
+            )
+        else:
+            result["note"] = (
+                "The GitHub poller is currently unauthenticated, so it only sees public GitHub PushEvents. If the "
+                "repo or activity is private, set GITHUB_TOKEN and restart the auth API."
+            )
+    return result
+
+
 @app.get("/health")
 def health() -> tuple[dict[str, object], int]:
     plaid_state = load_json_file(plaid_state_file(), default={})
@@ -108,6 +129,7 @@ def auth_test_page() -> Response:
   </head>
   <body>
     <h1>Auth Test</h1>
+    <p>GitHub poller note: it only counts commits that have been pushed to GitHub and exposed through GitHub events. A local-only commit will keep <code>published_count</code> at <code>0</code>.</p>
     <button id="plaid-button" type="button">Connect Plaid</button>
     <button id="plaid-sandbox-button" type="button">Seed Plaid Sandbox Item</button>
     <button id="pollers-button" type="button">Run All Pollers</button>
@@ -219,7 +241,7 @@ def run_named_poller(name: str):
     except Exception as exc:
         return jsonify({"ok": False, "poller": name, "error": str(exc)}), 500
 
-    return jsonify({"ok": True, "poller": name, "published_count": published_count}), 200
+    return jsonify(poller_result(name, published_count)), 200
 
 
 @app.post("/pollers/run-all")
@@ -230,7 +252,7 @@ def run_all_pollers():
     for name, poller in available_pollers().items():
         try:
             published_count = poller()
-            results.append({"poller": name, "ok": True, "published_count": published_count})
+            results.append(poller_result(name, published_count))
         except Exception as exc:
             has_error = True
             results.append({"poller": name, "ok": False, "error": str(exc)})

@@ -145,6 +145,13 @@ Expected result:
 * one result object per poller
 * `published_count` shown for successful runs
 
+Important GitHub detail:
+
+* the GitHub poller reads GitHub `PushEvent` activity, not your local `.git` history
+* a commit will not increase `published_count` until you push it to GitHub
+* if `GITHUB_TOKEN` is unset, the poller only sees public events
+* even after push, the count depends on that push appearing in the GitHub user events feed, which GitHub says can lag by roughly 30 seconds to 6 hours
+
 ## Step 5: Verify Kafka
 
 Open:

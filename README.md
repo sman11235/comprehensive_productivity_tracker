@@ -87,6 +87,8 @@ Recommended path:
 * GitHub dev activity sync
 * Plaid transactions sync
 
+The GitHub poller does not watch your local repository. It reads GitHub user activity and only publishes commits that appear inside GitHub `PushEvent` payloads, so a local commit must be pushed first. If `GITHUB_TOKEN` is unset, it only sees public events. GitHub also documents event-feed latency of about 30 seconds to 6 hours.
+
 The auth API also exposes direct endpoints for named pollers and Plaid auth flows, but the test page is the intended local workflow.
 
 ### 2. Verify Kafka

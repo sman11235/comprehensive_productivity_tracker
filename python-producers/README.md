@@ -10,6 +10,8 @@ A separate Python auth API handles the interactive login/authentication flows. T
 
 * Polls `GET /users/{user}/events` for the configured GitHub username.
 * Works against GitHub's public user activity feed. A token is optional and mainly helps with rate limits.
+* Only sees commits after they are pushed and exposed through GitHub `PushEvent` activity. Local-only commits are invisible to this poller.
+* Without `GITHUB_TOKEN`, the poller only sees public events. GitHub also warns that event feeds are not real-time and can lag by roughly 30 seconds to 6 hours.
 
 ### Transactions: Plaid Transactions Sync API
 

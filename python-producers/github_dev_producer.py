@@ -20,16 +20,63 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def fetch_events(username: str, limit: int) -> list[dict[str, Any]]:
-    headers: dict[str, str] = {"Accept": "application/vnd.github+json"}
+def github_client() -> JsonApiClient:
+    headers: dict[str, str] = {
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
     token = env("GITHUB_TOKEN", default="")
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
-    client = JsonApiClient(base_url="https://api.github.com", headers=headers)
+    return JsonApiClient(base_url="https://api.github.com", headers=headers)
+
+
+def fetch_events(username: str, limit: int) -> list[dict[str, Any]]:
+    client = github_client()
     params = {"per_page": min(limit, 100)}
-    response = client.get(f"/users/{username}/events", params=params)
+    token = env("GITHUB_TOKEN", default="")
+    path = f"/users/{username}/events" if token else f"/users/{username}/events/public"
+    response = client.get(path, params=params)
     return response if isinstance(response, list) else []
+
+
+def fetch_push_commits(repo: str, before: str | None, head: str | None) -> list[dict[str, Any]]:
+    if not repo or not head:
+        return []
+
+    if before and before != head:
+        try:
+            comparison = github_client().get(f"/repos/{repo}/compare/{before}...{head}")
+        except Exception:
+            comparison = None
+        if isinstance(comparison, dict):
+            commits = comparison.get("commits")
+            if isinstance(commits, list) and commits:
+                return commits
+
+    try:
+        commit = github_client().get(f"/repos/{repo}/commits/{head}")
+    except Exception:
+        return []
+
+    return [commit] if isinstance(commit, dict) else []
+
+
+def commit_details(commit: dict[str, Any]) -> tuple[str | None, str, dict[str, Any]]:
+    sha = commit.get("sha")
+    if not sha:
+        return None, "", {}
+
+    message = commit.get("message")
+    if not isinstance(message, str):
+        message = ((commit.get("commit") or {}).get("message")) or ""
+
+    author = commit.get("author")
+    if not isinstance(author, dict):
+        author = ((commit.get("commit") or {}).get("author")) or {}
+
+    return sha, message, author
 
 
 def commit_events(push_event: dict[str, Any], username: str, device_id: str) -> list[dict[str, Any]]:
@@ -41,13 +88,13 @@ def commit_events(push_event: dict[str, Any], username: str, device_id: str) -> 
     head = payload.get("head")
     before = payload.get("before")
 
+    commits = payload.get("commits") or fetch_push_commits(repo, before, head)
+
     events: list[dict[str, Any]] = []
-    for commit in payload.get("commits") or []:
-        sha = commit.get("sha")
+    for commit in commits:
+        sha, message, author = commit_details(commit)
         if not sha:
             continue
-        message = commit.get("message", "")
-        author = commit.get("author") or {}
         event = build_event(
             event_id=f"github-commit-{sha}",
             device_id=device_id,
@@ -69,7 +116,7 @@ def commit_events(push_event: dict[str, Any], username: str, device_id: str) -> 
                     "ref": ref,
                     "head": head,
                     "before": before,
-                    "commitUrl": commit.get("url"),
+                    "commitUrl": commit.get("html_url") or commit.get("url"),
                     "username": username,
                 },
             },
