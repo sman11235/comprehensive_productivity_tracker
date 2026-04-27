@@ -5,16 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Location Console</title>
     <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
   </head>
   <body>
     <div class="page-shell">
       <header class="hero">
         <div>
           <p class="eyebrow">Comprehensive Productivity Tracker</p>
-          <h1>Visits, known places, and live location publishing.</h1>
+          <h1>Visits, transactions, and live location publishing.</h1>
           <p class="hero-copy">
-            This frontend reads visit history from the location API and sends the current browser
-            location back every 2.5 minutes with a reverse-geocoded place name.
+            This frontend reads visit history from the location API, connects your bank through
+            Plaid, and sends the current browser location back every 2.5 minutes with a
+            reverse-geocoded place name.
           </p>
         </div>
 
@@ -22,6 +24,11 @@
           <label class="field">
             <span>Location API Base URL</span>
             <input id="apiBaseUrl" type="url" value="http://localhost:8001" />
+          </label>
+
+          <label class="field">
+            <span>Auth API Base URL</span>
+            <input id="authBaseUrl" type="url" value="http://localhost:8000" />
           </label>
 
           <label class="field">
@@ -59,6 +66,66 @@
       </header>
 
       <main class="dashboard">
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Banking</p>
+              <h2>Plaid connection</h2>
+            </div>
+            <p id="plaidSummary" class="panel-meta">Checking auth API status...</p>
+          </div>
+
+          <div class="plaid-panel">
+            <p class="panel-copy">
+              Connect your bank once through Plaid Link. After that, the background Plaid poller
+              can keep syncing new transactions into Kafka the same way the GitHub poller does.
+            </p>
+
+            <div class="plaid-login-card">
+              <div>
+                <p class="eyebrow">Bank Login</p>
+                <h3>Open Plaid Link and sign in to your bank</h3>
+                <p class="panel-copy">
+                  Use the live Plaid Link flow for a real bank-login modal. If you are running a
+                  local demo and do not want to complete the interactive login, seed a sandbox item
+                  instead.
+                </p>
+              </div>
+
+              <div class="button-row">
+                <button id="plaidConnectButton" type="button">Open Bank Login</button>
+                <button id="plaidSandboxButton" type="button" class="secondary">Use Sandbox Bank</button>
+                <a id="plaidTestPageLink" class="button-link secondary-link" href="http://localhost:8000/auth/test" target="_blank" rel="noreferrer">
+                  Open Auth Test
+                </a>
+              </div>
+            </div>
+
+            <div class="button-row">
+              <button id="plaidRunPollerButton" type="button" class="secondary">Sync Now</button>
+            </div>
+
+            <dl class="status-grid">
+              <div>
+                <dt>Connection</dt>
+                <dd id="plaidConnectionValue">Unknown</dd>
+              </div>
+              <div>
+                <dt>Institution</dt>
+                <dd id="plaidInstitutionValue">-</dd>
+              </div>
+              <div>
+                <dt>Poller</dt>
+                <dd id="plaidPollerValue">Idle</dd>
+              </div>
+              <div>
+                <dt>Last Sync</dt>
+                <dd id="plaidLastSyncValue">Never</dd>
+              </div>
+            </dl>
+          </div>
+        </section>
+
         <section class="panel">
           <div class="panel-heading">
             <div>

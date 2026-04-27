@@ -26,7 +26,29 @@ def plaid_link_redirect_uri() -> str:
     return env("PLAID_REDIRECT_URI", default="")
 
 
-def update_plaid_state_credentials(*, access_token: str, item_id: str | None) -> None:
+@app.before_request
+def handle_preflight():
+    if request.method != "OPTIONS":
+        return None
+    return ("", 204)
+
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    requested_headers = request.headers.get("Access-Control-Request-Headers")
+    response.headers["Access-Control-Allow-Headers"] = requested_headers or "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+    response.headers["Access-Control-Max-Age"] = "86400"
+    return response
+
+
+def update_plaid_state_credentials(
+    *,
+    access_token: str,
+    item_id: str | None,
+    institution_name: str | None = None,
+) -> None:
     state = load_json_file(plaid_state_file(), default={})
     previous_item_id = state.get("item_id")
     if state.get("cursor") and item_id and previous_item_id != item_id:
@@ -35,6 +57,8 @@ def update_plaid_state_credentials(*, access_token: str, item_id: str | None) ->
 
     state["access_token"] = access_token
     state["item_id"] = item_id
+    if institution_name:
+        state["institution_name"] = institution_name
     save_json_file(plaid_state_file(), state)
 
 
@@ -92,6 +116,7 @@ def health() -> tuple[dict[str, object], int]:
         {
             "ok": True,
             "plaid_connected": bool(plaid_state.get("access_token")),
+            "institution_name": plaid_state.get("institution_name"),
         },
         200,
     )
@@ -283,13 +308,14 @@ def create_plaid_link_token():
         payload["redirect_uri"] = redirect_uri
 
     response = plaid_client().post("/link/token/create", payload=payload)
-    return jsonify(response), 200
+    return jsonify({"ok": True, **response}), 200
 
 
 @app.post("/auth/plaid/exchange-public-token")
 def exchange_plaid_public_token():
     body = request.get_json(silent=True) or {}
     public_token = body.get("public_token", "")
+    institution_name = body.get("institution_name")
     if not public_token:
         return jsonify({"ok": False, "error": "missing_public_token"}), 400
 
@@ -301,7 +327,11 @@ def exchange_plaid_public_token():
             "public_token": public_token,
         },
     )
-    update_plaid_state_credentials(access_token=response["access_token"], item_id=response.get("item_id"))
+    update_plaid_state_credentials(
+        access_token=response["access_token"],
+        item_id=response.get("item_id"),
+        institution_name=institution_name,
+    )
     return jsonify({"ok": True, "item_id": response.get("item_id")}), 200
 
 
@@ -337,6 +367,7 @@ def seed_plaid_sandbox_item():
     update_plaid_state_credentials(
         access_token=exchange_response["access_token"],
         item_id=exchange_response.get("item_id"),
+        institution_name=institution_id,
     )
     state = load_json_file(plaid_state_file(), default={})
     state["sandbox_institution_id"] = institution_id

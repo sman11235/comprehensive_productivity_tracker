@@ -42,6 +42,8 @@ From the repository root:
 docker compose up --build
 ```
 
+The frontend service bind-mounts `./frontend` into the Nginx container, so HTML, CSS, and JS changes should appear after a browser refresh without rebuilding the stack.
+
 PostgreSQL state is stored in the named Docker volume `postgres-data`, mounted at `/var/lib/postgresql` to match PostgreSQL 18+ image expectations.
 
 If you previously started the stack with the older `/var/lib/postgresql/data` mount, that existing volume layout will cause PostgreSQL 18+ to refuse startup. If you do not need the old local data, reset with:

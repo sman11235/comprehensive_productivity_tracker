@@ -2,19 +2,25 @@ const LOCATION_SYNC_INTERVAL_MS = 150000;
 const VISITS_LIMIT = 50;
 const KNOWN_PLACES_LIMIT = 100;
 const DEFAULT_API_BASE_URL = "http://localhost:8001";
+const DEFAULT_AUTH_BASE_URL = "http://localhost:8000";
 const DEVICE_ID_STORAGE_KEY = "tracker_frontend_device_id";
 const USER_ID_STORAGE_KEY = "tracker_frontend_user_id";
 const API_BASE_STORAGE_KEY = "tracker_frontend_api_base_url";
+const AUTH_BASE_STORAGE_KEY = "tracker_frontend_auth_base_url";
 
 const state = {
   locationIntervalId: null,
   isSyncing: false,
   lastResolvedPlace: "",
   lastSentAt: "",
+  plaidConnected: false,
+  plaidInstitution: "",
+  plaidLastSyncAt: "",
 };
 
 const elements = {
   apiBaseUrl: document.querySelector("#apiBaseUrl"),
+  authBaseUrl: document.querySelector("#authBaseUrl"),
   userId: document.querySelector("#userId"),
   refreshButton: document.querySelector("#refreshButton"),
   startSyncButton: document.querySelector("#startSyncButton"),
@@ -23,6 +29,15 @@ const elements = {
   syncStatusValue: document.querySelector("#syncStatusValue"),
   lastSentValue: document.querySelector("#lastSentValue"),
   resolvedPlaceValue: document.querySelector("#resolvedPlaceValue"),
+  plaidSummary: document.querySelector("#plaidSummary"),
+  plaidConnectButton: document.querySelector("#plaidConnectButton"),
+  plaidSandboxButton: document.querySelector("#plaidSandboxButton"),
+  plaidTestPageLink: document.querySelector("#plaidTestPageLink"),
+  plaidRunPollerButton: document.querySelector("#plaidRunPollerButton"),
+  plaidConnectionValue: document.querySelector("#plaidConnectionValue"),
+  plaidInstitutionValue: document.querySelector("#plaidInstitutionValue"),
+  plaidPollerValue: document.querySelector("#plaidPollerValue"),
+  plaidLastSyncValue: document.querySelector("#plaidLastSyncValue"),
   visitsSummary: document.querySelector("#visitsSummary"),
   knownPlacesSummary: document.querySelector("#knownPlacesSummary"),
   visitsList: document.querySelector("#visitsList"),
@@ -91,14 +106,30 @@ function getApiBaseUrl() {
   return elements.apiBaseUrl.value.trim().replace(/\/$/, "") || DEFAULT_API_BASE_URL;
 }
 
+function getAuthBaseUrl() {
+  return elements.authBaseUrl.value.trim().replace(/\/$/, "") || DEFAULT_AUTH_BASE_URL;
+}
+
 function saveSettings() {
   localStorage.setItem(API_BASE_STORAGE_KEY, getApiBaseUrl());
+  localStorage.setItem(AUTH_BASE_STORAGE_KEY, getAuthBaseUrl());
   localStorage.setItem(USER_ID_STORAGE_KEY, elements.userId.value.trim());
+  syncAuthLinks();
 }
 
 function loadSettings() {
   elements.apiBaseUrl.value = localStorage.getItem(API_BASE_STORAGE_KEY) || DEFAULT_API_BASE_URL;
+  elements.authBaseUrl.value = localStorage.getItem(AUTH_BASE_STORAGE_KEY) || DEFAULT_AUTH_BASE_URL;
   elements.userId.value = localStorage.getItem(USER_ID_STORAGE_KEY) || "";
+  syncAuthLinks();
+}
+
+function syncAuthLinks() {
+  if (!elements.plaidTestPageLink) {
+    return;
+  }
+
+  elements.plaidTestPageLink.href = `${getAuthBaseUrl()}/auth/test`;
 }
 
 function showMessage(message) {
@@ -123,6 +154,25 @@ function setResolvedPlace(text) {
 function setLastSent(isoTimestamp) {
   state.lastSentAt = isoTimestamp;
   elements.lastSentValue.textContent = isoTimestamp ? formatDateTime(isoTimestamp) : "Never";
+}
+
+function setPlaidPollerStatus(text) {
+  elements.plaidPollerValue.textContent = text;
+}
+
+function setPlaidLastSync(isoTimestamp) {
+  state.plaidLastSyncAt = isoTimestamp;
+  elements.plaidLastSyncValue.textContent = isoTimestamp ? formatDateTime(isoTimestamp) : "Never";
+}
+
+function setPlaidConnection(connected, institution = "") {
+  state.plaidConnected = connected;
+  state.plaidInstitution = institution;
+  elements.plaidConnectionValue.textContent = connected ? "Connected" : "Not connected";
+  elements.plaidInstitutionValue.textContent = institution || "-";
+  elements.plaidSummary.textContent = connected
+    ? "Plaid is linked and ready for background transaction sync."
+    : "Open the bank login flow or seed a sandbox item to start transaction syncing.";
 }
 
 function formatDateTime(value) {
@@ -166,7 +216,6 @@ function eventSummaryLabel(events) {
   return [
     `Locations ${events.locations.length}`,
     `Transactions ${events.transactions.length}`,
-    `Health ${events.health.length}`,
     `Dev ${events.dev.length}`,
   ];
 }
@@ -177,9 +226,6 @@ function summarizeEventItem(type, event) {
   }
   if (type === "transactions") {
     return `${formatDateTime(event.timestamp)} • ${event.category || "Uncategorized"} • $${event.amount ?? "0.00"}`;
-  }
-  if (type === "health") {
-    return `${formatDateTime(event.timestamp)} • ${event.metric_type}: ${event.val} ${event.unit}`;
   }
   return `${formatDateTime(event.timestamp)} • ${event.platform}/${event.action_type} • ${event.target}`;
 }
@@ -225,7 +271,7 @@ function renderVisits(visits) {
     .map((visit) => {
       const placeName = visit.place?.name || "Unknown place";
       const placeMeta = [visit.place?.category, visit.place?.status].filter(Boolean).join(" • ");
-      const eventSections = ["locations", "transactions", "health", "dev"]
+      const eventSections = ["locations", "transactions", "dev"]
         .map((type) => {
           const items = visit.events[type];
           return `
@@ -285,6 +331,15 @@ async function fetchApiJson(path, options = {}) {
   return data;
 }
 
+async function fetchAuthJson(path, options = {}) {
+  const response = await fetch(`${getAuthBaseUrl()}${path}`, options);
+  const data = await response.json();
+  if (!response.ok || !data.ok) {
+    throw new Error(data.error || `Request failed: ${response.status}`);
+  }
+  return data;
+}
+
 async function refreshData() {
   clearMessage();
   elements.visitsSummary.textContent = "Loading...";
@@ -301,6 +356,19 @@ async function refreshData() {
     renderEmptyState(elements.visitsList, "Unable to load visits.");
     renderEmptyState(elements.knownPlacesList, "Unable to load known places.");
     showMessage(error.message);
+  }
+}
+
+async function refreshPlaidStatus() {
+  try {
+    const status = await fetchAuthJson("/health");
+    setPlaidConnection(Boolean(status.plaid_connected), status.institution_name || "");
+    setPlaidPollerStatus(state.plaidConnected ? "Waiting for next background run" : "Idle");
+  } catch (error) {
+    setPlaidConnection(false);
+    setPlaidPollerStatus("Unavailable");
+    elements.plaidSummary.textContent = "Auth API unavailable.";
+    elements.plaidInstitutionValue.textContent = "-";
   }
 }
 
@@ -457,6 +525,130 @@ async function startLocationSync() {
   state.locationIntervalId = window.setInterval(runSyncCycle, LOCATION_SYNC_INTERVAL_MS);
 }
 
+async function runPlaidPoller() {
+  saveSettings();
+  clearMessage();
+  setPlaidPollerStatus("Syncing");
+
+  try {
+    const result = await fetchAuthJson("/pollers/plaid/run", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({}),
+    });
+    setPlaidLastSync(new Date().toISOString());
+    setPlaidPollerStatus(`Synced ${result.published_count || 0}`);
+    if (result.note) {
+      showMessage(result.note);
+    }
+    await refreshData();
+    await refreshPlaidStatus();
+  } catch (error) {
+    setPlaidPollerStatus("Error");
+    showMessage(error.message);
+  }
+}
+
+async function connectPlaid() {
+  saveSettings();
+  clearMessage();
+
+  if (!window.Plaid || typeof window.Plaid.create !== "function") {
+    showMessage("Plaid Link failed to load in the browser.");
+    return;
+  }
+
+  elements.plaidConnectButton.disabled = true;
+  setPlaidPollerStatus("Preparing Link");
+
+  try {
+    const linkTokenData = await fetchAuthJson("/auth/plaid/link-token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: elements.userId.value.trim() || "local-user",
+      }),
+    });
+
+    await new Promise((resolve, reject) => {
+      const handler = window.Plaid.create({
+        token: linkTokenData.link_token,
+        onSuccess: async (publicToken, metadata) => {
+          try {
+            setPlaidPollerStatus("Exchanging token");
+            await fetchAuthJson("/auth/plaid/exchange-public-token", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                public_token: publicToken,
+                institution_name: metadata?.institution?.name || null,
+              }),
+            });
+            setPlaidConnection(true, metadata?.institution?.name || "");
+            setPlaidPollerStatus("Initial sync");
+            setPlaidLastSync(new Date().toISOString());
+            await runPlaidPoller();
+            resolve();
+          } catch (error) {
+            reject(error);
+          }
+        },
+        onExit: (error) => {
+          if (error) {
+            reject(new Error(error.display_message || error.error_message || "Plaid Link exited with an error."));
+            return;
+          }
+          setPlaidPollerStatus(state.plaidConnected ? "Waiting for next background run" : "Idle");
+          resolve();
+        },
+      });
+
+      handler.open();
+    });
+
+    await refreshPlaidStatus();
+  } catch (error) {
+    setPlaidPollerStatus("Error");
+    showMessage(error.message);
+  } finally {
+    elements.plaidConnectButton.disabled = false;
+  }
+}
+
+async function seedPlaidSandbox() {
+  saveSettings();
+  clearMessage();
+  elements.plaidSandboxButton.disabled = true;
+  setPlaidPollerStatus("Seeding sandbox");
+
+  try {
+    const result = await fetchAuthJson("/auth/plaid/sandbox-seed", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({}),
+    });
+
+    setPlaidConnection(true, result.institution_id || "Plaid Sandbox");
+    setPlaidLastSync(new Date().toISOString());
+    setPlaidPollerStatus("Initial sync");
+    await runPlaidPoller();
+    await refreshPlaidStatus();
+  } catch (error) {
+    setPlaidPollerStatus("Error");
+    showMessage(error.message);
+  } finally {
+    elements.plaidSandboxButton.disabled = false;
+  }
+}
+
 function browserTimezone() {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York";
 }
@@ -546,7 +738,23 @@ function bindEvents() {
     await runAgentQuery();
   });
 
+  elements.plaidConnectButton.addEventListener("click", async () => {
+    await connectPlaid();
+  });
+
+  elements.plaidSandboxButton.addEventListener("click", async () => {
+    await seedPlaidSandbox();
+  });
+
+  elements.plaidRunPollerButton.addEventListener("click", async () => {
+    await runPlaidPoller();
+  });
+
   elements.apiBaseUrl.addEventListener("change", saveSettings);
+  elements.authBaseUrl.addEventListener("change", () => {
+    saveSettings();
+    refreshPlaidStatus();
+  });
   elements.userId.addEventListener("change", saveSettings);
 }
 
@@ -556,12 +764,16 @@ function init() {
   setResolvedPlace("");
   setLastSent("");
   setSyncStatus("Stopped");
+  setPlaidConnection(false);
+  setPlaidPollerStatus("Idle");
+  setPlaidLastSync("");
   elements.agentQueryInput.value = "On what days and times am I most productive?";
   bindEvents();
   if (geolocationRequiresSecureOrigin()) {
     showMessage(geolocationSetupMessage());
   }
   refreshData();
+  refreshPlaidStatus();
 }
 
 init();

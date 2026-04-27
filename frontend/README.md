@@ -17,6 +17,8 @@ From the repository root:
 docker compose up --build
 ```
 
+After the container is running, edits in `frontend/` are bind-mounted into Nginx and should appear on refresh without rebuilding the image.
+
 Then open:
 
 ```text

@@ -61,6 +61,7 @@ body {
 
 .hero-copy,
 .panel-meta,
+.panel-copy,
 .field span,
 .message-banner,
 .event-empty,
@@ -208,6 +209,43 @@ button.secondary {
 .agent-panel {
   display: grid;
   gap: 16px;
+}
+
+.plaid-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.plaid-login-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(15, 118, 110, 0.09), rgba(255, 249, 239, 0.92)),
+    var(--panel-strong);
+}
+
+.plaid-login-card h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+}
+
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font: 600 0.95rem var(--font-display);
+  text-decoration: none;
+}
+
+.secondary-link {
+  background: #d9d1c2;
+  color: var(--text);
 }
 
 .agent-answer {

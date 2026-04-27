@@ -144,6 +144,26 @@ services:
     networks:
       - pf-network
 
+  python-plaid-poller:
+    build:
+      context: .
+      dockerfile: python-producers/Dockerfile
+    container_name: pf-python-plaid-poller
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - RUN_MODE=loop
+      - PRODUCER_SCRIPT=plaid_transaction_producer.py
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+    volumes:
+      - ./python-producers/.state:/app/python-producers/.state
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - pf-network
+
   python-location-api:
     build:
       context: .
@@ -181,6 +201,8 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
     depends_on:
       - python-location-api
     networks:
