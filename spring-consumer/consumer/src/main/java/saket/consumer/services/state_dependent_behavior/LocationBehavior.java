@@ -94,6 +94,10 @@ public class LocationBehavior implements ILocationBehavior {
 
         List<ActionResult> actionResults = actionRunner.run(stateDecision.actions(), actionRepository);
 
+        if (stateDecision.state() == DiscreteState.START) {
+            actionRepository.endAllActiveVisits(userLocationCtx.timestamp());
+        }
+
         Optional<Long> newVisitId = Optional.empty();
         boolean closeCurrentVisit = false;
 
@@ -103,6 +107,10 @@ public class LocationBehavior implements ILocationBehavior {
             
             if (!closeCurrentVisit)
                 closeCurrentVisit = actionResult.closeCurrentVisit();
+        }
+
+        if (stateDecision.state() == DiscreteState.START) {
+            closeCurrentVisit = true;
         }
 
         Optional<Long> resolvedVisitId = newVisitId;

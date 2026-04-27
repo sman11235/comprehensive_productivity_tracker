@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import saket.consumer.domain.EventDTO;
 import saket.consumer.domain.EventOp;
+import saket.consumer.domain.Visit;
 import saket.consumer.domain.userFSM.UserState;
 import saket.consumer.domain.userFSM.states.DiscreteState;
 import saket.consumer.repositories.LocationLogRepository;
@@ -333,5 +334,39 @@ public class LocationEventTests extends BaseContainerTest {
             assertThat(openVisits).isNotNull();
         }
         assertThat(userStateStore.getState() == DiscreteState.VISITING).isTrue();
+    }
+
+    @Test
+    void integration_returningToStartState_closesAllActiveVisits() {
+        Instant openVisitStart = now.minusSeconds(30 * SECONDS_IN_MIN);
+        Visit firstOpenVisit = visitRepository.save(Visit.builder()
+            .entryTime(openVisitStart)
+            .build());
+        Visit secondOpenVisit = visitRepository.save(Visit.builder()
+            .entryTime(openVisitStart.plusSeconds(SECONDS_IN_MIN))
+            .build());
+
+        userStateStore.update(old -> new UserState(DiscreteState.MOVING));
+
+        EventDTO event = new EventDTO(
+            "reset-to-start",
+            "iphone",
+            "ios",
+            "saket.location",
+            EventOp.CREATE,
+            now,
+            createLocationPayload(now, "Tech Square", -84.39, 33.78),
+            null
+        );
+
+        locationStrategy.handle(event);
+
+        assertThat(userStateStore.getState()).isEqualTo(DiscreteState.START);
+        assertThat(visitRepository.findById(firstOpenVisit.getId()).orElseThrow().getExitTime()).isEqualTo(now);
+        assertThat(visitRepository.findById(secondOpenVisit.getId()).orElseThrow().getExitTime()).isEqualTo(now);
+        assertThat(jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM visits WHERE exit_time IS NULL",
+            Integer.class
+        )).isZero();
     }
 }

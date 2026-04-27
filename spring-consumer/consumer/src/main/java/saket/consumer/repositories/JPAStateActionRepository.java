@@ -85,6 +85,12 @@ public class JPAStateActionRepository implements IStateActionRepository {
         locationLogRepository.assignVisit(visit, start, end);
     }
 
+    @Transactional
+    @Override
+    public void endAllActiveVisits(Instant end) {
+        visitRepository.endAllActiveVisits(end);
+    }
+
     private String normalizeLocationName(String locationName) {
         if (locationName == null || locationName.isBlank()) {
             return DEFAULT_NEW_PLACE_NAME;

@@ -27,4 +27,9 @@ public interface IStateActionRepository {
      * Assigns givien visit id to all events processed between start time and end time.
      */
     void assignVisitToEvents(long visitId, Instant start, Instant end);
+
+    /**
+     * Ends every currently active visit at the provided time.
+     */
+    void endAllActiveVisits(Instant end);
 }

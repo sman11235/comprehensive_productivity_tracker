@@ -28,4 +28,9 @@ public class TestStateActionImpl implements IStateActionRepository {
     public void assignVisitToEvents(long visitId, Instant start, Instant end) {
         System.out.println("Assigned visit");
     }
+
+    @Override
+    public void endAllActiveVisits(Instant end) {
+        System.out.println("Ended all active visits at " + end);
+    }
 }

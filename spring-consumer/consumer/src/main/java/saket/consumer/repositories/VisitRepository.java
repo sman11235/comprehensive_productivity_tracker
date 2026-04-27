@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -22,4 +23,12 @@ public interface VisitRepository extends JpaRepository<Visit, Long> {
           AND (v.exitTime > :time OR v.exitTime IS NULL)
     """)
     Optional<Visit> findVisitContainingTime(@Param("time") Instant time);
+
+    @Modifying
+    @Query("""
+        UPDATE Visit v
+        SET v.exitTime = :end
+        WHERE v.exitTime IS NULL
+    """)
+    int endAllActiveVisits(@Param("end") Instant end);
 }
