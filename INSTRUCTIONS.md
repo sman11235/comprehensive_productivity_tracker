@@ -2,15 +2,16 @@
 
 ## Purpose
 
-This document is the current local verification guide for the repository. Use it when you need to confirm that:
+This is the current local verification guide for the repository. Use it to confirm that:
 
-* the Docker Compose stack starts correctly
-* Plaid auth and the Python pollers publish Kafka events
+* the Docker Compose stack starts cleanly
+* Plaid auth or sandbox seeding works
+* the Python pollers publish Kafka events
 * the frontend can read visits and known places
 * browser location sync produces `saket.location` events
 * the Spring consumer persists processed data into PostgreSQL
 
-Older instructions that depended on manually publishing batches of location events are obsolete for this repository state.
+Older instructions that depended on manually publishing location batches are obsolete for the current repository state.
 
 ## Expected Services
 
@@ -49,17 +50,17 @@ Relevant database tables:
 * `known_places`
 * `processed_events`
 
-`health_logs` is part of the schema and frontend read model, but there is no health producer in the current local verification path.
+`health_logs` is part of the schema and frontend read model, but there is no health producer in the current verification path.
 
 ## Prerequisites
 
 Before starting the stack:
 
 * install Docker and Docker Compose
-* create the repository root `.env`
-* use [python-producers/.env.example](/home/saket/programming/cs4365_project_comprehensive_productivity_tracker/python-producers/.env.example) as the template
+* create a repository root `.env`
+* use [python-producers/.env.example](/home/saket/programming/cs4365_project_comprehensive_productivity_tracker/python-producers/.env.example) as the starting template
 
-Minimum variables to verify:
+Minimum variables to set:
 
 * `GITHUB_USERNAME`
 * `PLAID_CLIENT_ID`
@@ -67,9 +68,9 @@ Minimum variables to verify:
 
 Optional variables:
 
-* `GITHUB_TOKEN`, optional for GitHub API rate limits
-* `OPENAI_API_KEY`
-* `OPENAI_AGENT_MODEL`
+* `GITHUB_TOKEN` for GitHub rate limits
+* `OPENAI_API_KEY` for agent endpoints
+* `OPENAI_AGENT_MODEL` to override the default agent model
 
 If the Kafka topics do not already exist, create them in Kafka UI before running pollers:
 
@@ -89,17 +90,15 @@ docker compose up --build
 
 PostgreSQL state is stored in the named Docker volume `postgres-data`, mounted at `/var/lib/postgresql` to match PostgreSQL 18+ image expectations.
 
-If you previously started the stack with the older `/var/lib/postgresql/data` mount, that old volume layout will block startup on PostgreSQL 18+. If the old local data is disposable, reset it with:
+If you previously started the stack with an older `/var/lib/postgresql/data` volume layout, PostgreSQL 18+ may fail to start. If that old local data is disposable:
 
 ```bash
 docker compose down -v
 ```
 
-If you need to preserve the old data, perform a PostgreSQL migration such as `pg_upgrade` or dump/restore before switching layouts.
+If the data matters, migrate it before switching layouts.
 
-After removing the volume, the init scripts will run again on first startup.
-
-Wait for these to become reachable:
+Wait for these endpoints:
 
 * `http://localhost:8000/health`
 * `http://localhost:8001/health`
@@ -109,9 +108,9 @@ Wait for these to become reachable:
 
 Service notes:
 
-* `python-auth-api` serves the Plaid test page and poller endpoints
+* `python-auth-api` serves the Plaid test page and manual poller endpoints
 * `python-location-api` accepts location posts and serves visits, known places, and agent responses
-* `spring-consumer` must be healthy enough to consume Kafka events before verification is meaningful
+* `spring-consumer` must be running before event verification is meaningful
 
 ## Step 2: Open The Auth Test Page
 
@@ -121,7 +120,7 @@ Open:
 http://localhost:8000/auth/test
 ```
 
-The page contains:
+The page exposes:
 
 * `Connect Plaid`
 * `Seed Plaid Sandbox Item`
@@ -133,13 +132,13 @@ Preferred path:
 
 * click `Connect Plaid`
 * complete Plaid Link
-* wait for the page to show a connected result
+* wait for a successful connected result
 
 Fallback path:
 
 * click `Seed Plaid Sandbox Item`
 
-Either path should write Plaid state into `python-producers/.state/plaid.json`.
+Either path should persist Plaid state into `python-producers/.state/plaid.json`.
 
 ## Step 4: Run All Pollers
 
@@ -150,19 +149,19 @@ From the auth test page:
 This calls `POST /pollers/run-all` and runs:
 
 * the GitHub dev activity poller
-* the Plaid transactions poller
+* the Plaid transaction poller
 
 Expected result:
 
 * one result object per poller
 * `published_count` shown for successful runs
 
-Important GitHub detail:
+GitHub constraints:
 
-* the GitHub poller reads GitHub `PushEvent` activity, not your local `.git` history
-* a commit will not increase `published_count` until you push it to GitHub
-* if `GITHUB_TOKEN` is unset, the poller only sees public events
-* even after push, the count depends on that push appearing in the GitHub user events feed, which GitHub says can lag by roughly 30 seconds to 6 hours
+* the poller reads GitHub user `PushEvent` data, not local `.git` history
+* a commit is invisible until it is pushed to GitHub
+* without `GITHUB_TOKEN`, only public events are visible
+* GitHub event feeds can lag by roughly 30 seconds to 6 hours
 
 ## Step 5: Verify Kafka
 
@@ -199,7 +198,7 @@ Expected frontend capabilities:
 * read visits from `GET /visits`
 * read known places from `GET /known-places`
 * post browser location to `POST /locations`
-* run database-agent questions against `POST /agent/query`
+* run natural-language database questions against `GET` or `POST /agent/query`
 
 Default API base URL:
 
@@ -221,9 +220,9 @@ Expected location event characteristics:
 
 * topic: `saket.location`
 * envelope includes `eventId`, `deviceId`, `source`, `type`, `op`, `observedAt`, `payload`, and `attributes`
-* payload includes a timestamp, a device id, a location name, and GeoJSON-style coordinates
+* payload includes timestamp, device id, location name, and GeoJSON-style coordinates
 
-Browser geolocation only works from secure origins or `http://localhost`. If the frontend is opened from another machine over `http://<lan-ip>:3000`, geolocation will usually fail unless the frontend is served over HTTPS.
+Browser geolocation works on `http://localhost` and other secure origins. If the frontend is opened from another machine over `http://<lan-ip>:3000`, geolocation usually fails unless the site is served over HTTPS.
 
 ## Step 7: Verify PostgreSQL Persistence
 
@@ -238,7 +237,7 @@ Login:
 * email: `admin@admin.com`
 * password: `admin`
 
-If pgAdmin asks for the server password, enter:
+If pgAdmin asks for the server password, use:
 
 ```text
 pass
@@ -284,28 +283,28 @@ Local verification is successful when all of the following are true:
 If Plaid login fails:
 
 * verify `PLAID_CLIENT_ID` and `PLAID_SECRET` in `.env`
-* use `Seed Plaid Sandbox Item` as the fallback path
+* use `Seed Plaid Sandbox Item` as the fallback
 
 If the pollers fail:
 
 * inspect the JSON response shown by `http://localhost:8000/auth/test`
 * verify `GITHUB_USERNAME` is set
 * verify the Kafka topics exist
-* verify the auth API is using `kafka:29092` inside Compose
+* verify the Compose services are using `kafka:29092`
 
 If the frontend cannot refresh data:
 
 * verify `http://localhost:8001/health`
 * verify the API base URL is `http://localhost:8001`
-* inspect browser console and network failures
+* inspect browser network failures
 
 If location sync fails:
 
 * verify browser location permission
-* verify the frontend is opened on `http://localhost:3000` or HTTPS
+* verify the frontend is opened from `http://localhost:3000` or HTTPS
 * verify the location API is reachable and Kafka is healthy
 
 If agent queries fail:
 
 * verify `OPENAI_API_KEY` is set
-* remember that agent endpoints are optional and are not required for Kafka or persistence verification
+* remember that agent endpoints are optional and not required for Kafka or persistence verification
