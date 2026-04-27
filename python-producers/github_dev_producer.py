@@ -3,8 +3,6 @@ from __future__ import annotations
 import argparse
 from typing import Any
 
-import requests
-
 from producer_common import JsonApiClient, KafkaEventPublisher, build_event, env, load_json_file, save_json_file, to_iso8601
 
 TOPIC = "saket.dev_activity"
@@ -13,7 +11,7 @@ SOURCE = "api.github"
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Fetch public GitHub push events and publish commit Kafka events.")
+    parser = argparse.ArgumentParser(description="Fetch GitHub user events and publish commit Kafka events.")
     parser.add_argument("--username", default=env("GITHUB_USERNAME", default=""))
     parser.add_argument("--bootstrap-servers", default=env("KAFKA_BOOTSTRAP_SERVERS", default="localhost:9092"))
     parser.add_argument("--device-id", default=env("DEV_DEVICE_ID", default="github-producer"))
@@ -30,17 +28,7 @@ def fetch_events(username: str, limit: int) -> list[dict[str, Any]]:
 
     client = JsonApiClient(base_url="https://api.github.com", headers=headers)
     params = {"per_page": min(limit, 100)}
-
-    if token:
-        try:
-            response = client.get(f"/users/{username}/events", params=params)
-            return response if isinstance(response, list) else []
-        except requests.HTTPError:
-            # Fall back to the public activity feed when the token cannot read the
-            # authenticated activity stream for this username.
-            pass
-
-    response = client.get(f"/users/{username}/events/public", params=params)
+    response = client.get(f"/users/{username}/events", params=params)
     return response if isinstance(response, list) else []
 
 
@@ -86,7 +74,7 @@ def commit_events(push_event: dict[str, Any], username: str, device_id: str) -> 
                 },
             },
             attributes={
-                "provider": "github-authenticated-events" if env("GITHUB_TOKEN", default="") else "github-public-events",
+                "provider": "github-user-events",
                 "username": username,
                 "eventType": "PushEvent",
             },

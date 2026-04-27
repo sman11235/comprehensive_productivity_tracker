@@ -67,7 +67,7 @@ Minimum variables to verify:
 
 Optional variables:
 
-* `GITHUB_TOKEN`
+* `GITHUB_TOKEN`, optional for GitHub API rate limits
 * `OPENAI_API_KEY`
 * `OPENAI_AGENT_MODEL`
 

@@ -29,7 +29,7 @@ Before starting the stack:
 Common variables:
 
 * `GITHUB_USERNAME`
-* `GITHUB_TOKEN`, optional but useful for private GitHub activity
+* `GITHUB_TOKEN`, optional and mainly useful for GitHub API rate limits
 * `PLAID_CLIENT_ID`
 * `PLAID_SECRET`
 * `OPENAI_API_KEY`, only required for the natural-language database agent

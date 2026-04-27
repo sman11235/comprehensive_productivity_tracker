@@ -8,8 +8,8 @@ A separate Python auth API handles the interactive login/authentication flows. T
 
 ### Dev: GitHub REST API
 
-* Works without a token by polling GitHub's public events API.
-* If `GITHUB_TOKEN` is set, the producer first uses the authenticated user activity feed so private-account push activity can be ingested too.
+* Polls `GET /users/{user}/events` for the configured GitHub username.
+* Works against GitHub's public user activity feed. A token is optional and mainly helps with rate limits.
 
 ### Transactions: Plaid Transactions Sync API
 
@@ -226,7 +226,7 @@ The producer emits:
 * `target` from `repo.name`
 * `metadata` with commit SHA, commit message, author info, ref, and repo details
 
-If you need commit events from private repositories or non-public account activity, set `GITHUB_TOKEN`. Without a token, GitHub only exposes `/events/public`, so private pushes will never reach Kafka.
+This producer reads the public user activity feed. `GITHUB_TOKEN` is optional, but it does not change the endpoint or make private activity available through this poller.
 
 ### Plaid -> `TransactionLog`
 
